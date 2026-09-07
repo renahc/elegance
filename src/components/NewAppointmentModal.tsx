@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, User, Scissors, DollarSign } from 'lucide-react';
 import type { Appointment, Client, Service, Stylist } from '../types/dashboard';
 
@@ -9,6 +9,8 @@ interface NewAppointmentModalProps {
   clients: Client[];
   services: Service[];
   stylists: Stylist[];
+  initialServiceId?: string;
+  initialStylistId?: string;
 }
 
 export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
@@ -18,13 +20,22 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
   clients,
   services,
   stylists,
+  initialServiceId,
+  initialStylistId,
 }) => {
   const [selectedClientId, setSelectedClientId] = useState(clients[0]?.id || '');
-  const [selectedServiceId, setSelectedServiceId] = useState(services[0]?.id || '');
-  const [selectedStylistId, setSelectedStylistId] = useState(stylists[0]?.id || '');
+  const [selectedServiceId, setSelectedServiceId] = useState(initialServiceId || services[0]?.id || '');
+  const [selectedStylistId, setSelectedStylistId] = useState(initialStylistId || stylists[0]?.id || '');
   const [date, setDate] = useState('2026-08-31');
   const [time, setTime] = useState('12:00');
   const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialServiceId) setSelectedServiceId(initialServiceId);
+      if (initialStylistId) setSelectedStylistId(initialStylistId);
+    }
+  }, [isOpen, initialServiceId, initialStylistId]);
 
   if (!isOpen) return null;
 

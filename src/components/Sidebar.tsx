@@ -7,7 +7,8 @@ import {
   Sparkles, 
   BarChart3, 
   Crown,
-  ChevronRight
+  ChevronRight,
+  Globe
 } from 'lucide-react';
 
 export type TabType = 'overview' | 'appointments' | 'clients' | 'staff' | 'services' | 'analytics';
@@ -16,9 +17,15 @@ interface SidebarProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
   appointmentsCount: number;
+  onSwitchToLanding?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, appointmentsCount }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ 
+  activeTab, 
+  setActiveTab, 
+  appointmentsCount,
+  onSwitchToLanding 
+}) => {
   const navItems = [
     { id: 'overview', label: 'Resumen General', icon: LayoutDashboard },
     { id: 'appointments', label: 'Agenda & Citas', icon: Calendar, badge: appointmentsCount },
@@ -71,6 +78,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, appoi
         })}
       </nav>
 
+      {onSwitchToLanding && (
+        <div style={{ padding: '0 12px', marginBottom: '16px' }}>
+          <button
+            onClick={onSwitchToLanding}
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--accent-gold-border)',
+              backgroundColor: 'var(--accent-gold-light)',
+              color: 'var(--text-primary)',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <Globe size={16} color="var(--accent-gold)" />
+            <span>Ver Sitio Web</span>
+          </button>
+        </div>
+      )}
+
       <div className="sidebar-footer-card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
           <h4>Horario de Atención</h4>
@@ -82,3 +116,4 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, appoi
     </aside>
   );
 };
+

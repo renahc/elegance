@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
-import { Search, Bell, Plus, Calendar as CalendarIcon } from 'lucide-react';
+import { Search, Bell, Plus, Calendar as CalendarIcon, LogIn, LogOut, ShieldCheck } from 'lucide-react';
 import type { NotificationItem } from '../types/dashboard';
+
 
 interface HeaderProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onOpenNewAppointment: () => void;
   notifications: NotificationItem[];
+  user: { name: string; username: string } | null;
+  onLogin: () => void;
+  onLogout: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -14,6 +18,9 @@ export const Header: React.FC<HeaderProps> = ({
   setSearchQuery,
   onOpenNewAppointment,
   notifications,
+  user,
+  onLogin,
+  onLogout,
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -24,6 +31,9 @@ export const Header: React.FC<HeaderProps> = ({
     month: 'short',
     year: 'numeric',
   }).format(new Date());
+
+
+
 
   return (
     <header className="top-header">
@@ -42,6 +52,75 @@ export const Header: React.FC<HeaderProps> = ({
           <CalendarIcon size={15} color="var(--accent-gold)" />
           <span style={{ textTransform: 'capitalize' }}>{currentDateFormatted}</span>
         </div>
+
+        {/* Azure AD MSAL Login / User Info Button */}
+        {user ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                padding: '6px 14px', 
+                borderRadius: 'var(--radius-full)', 
+                background: 'rgba(0, 120, 212, 0.12)', 
+                border: '1px solid rgba(0, 120, 212, 0.3)',
+                color: '#0078D4',
+                fontSize: '0.85rem',
+                fontWeight: 600
+              }}
+            >
+              <ShieldCheck size={16} />
+              <span>{user.name || user.username}</span>
+            </div>
+
+            <button 
+              onClick={onLogout}
+              title="Cerrar Sesión Azure AD"
+              style={{ 
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                borderRadius: 'var(--radius-full)',
+                border: '1px solid rgba(239, 68, 68, 0.4)',
+                background: 'rgba(239, 68, 68, 0.12)',
+                color: '#EF4444',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <LogOut size={14} />
+              <span>Cerrar Sesión</span>
+            </button>
+
+          </div>
+        ) : (
+          <button 
+            onClick={onLogin}
+
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 18px',
+              borderRadius: 'var(--radius-full)',
+              border: 'none',
+              background: '#0078D4',
+              color: '#FFFFFF',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              boxShadow: '0 2px 10px rgba(0, 120, 212, 0.3)',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <LogIn size={16} />
+            <span>Login Azure AD</span>
+          </button>
+        )}
 
         <button className="btn-primary" onClick={onOpenNewAppointment}>
           <Plus size={16} />
@@ -82,18 +161,6 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )}
         </div>
-
-        <button className="user-profile-btn">
-          <img
-            src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200"
-            alt="Elena Rostova"
-            className="user-avatar"
-          />
-          <div className="user-info">
-            <div className="user-name">Elena Rostova</div>
-            <div className="user-role">Directora de Salón</div>
-          </div>
-        </button>
       </div>
     </header>
   );
