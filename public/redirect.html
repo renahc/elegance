@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Autenticando en Azure AD...</title>
+</head>
+<body style="background-color: #1C1917; color: #FFFFFF; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
+    <div style="text-align: center;">
+        <h3 style="color: #C5A059;">ÉLÉGANCE BEAUTY STUDIO</h3>
+        <p style="color: #A8A29E; font-size: 0.9rem;">Autenticación completada. Cerrando ventana...</p>
+    </div>
+    <script src="https://alcdn.msauth.net/browser/2.38.1/js/msal-browser.min.js"></script>
+    <script>
+        const msalConfig = {
+            auth: {
+                clientId: '413ae20f-d59e-4b81-8864-97d5945f7d5f',
+                authority: 'https://login.microsoftonline.com/ff064edc-07f4-448c-97e1-49da14c085f5'
+            }
+        };
+        const pca = new msal.PublicClientApplication(msalConfig);
+        pca.initialize().then(() => {
+            pca.handleRedirectPromise().then(() => {
+                window.close();
+            }).catch(() => {
+                window.close();
+            });
+        });
+    </script>
+</body>
+</html>
+
