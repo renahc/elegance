@@ -115,7 +115,17 @@ jobs:
             sudo iptables -F || true
             sudo systemctl enable nginx
             sudo systemctl restart nginx
-            sudo systemctl status nginx --no-pager
+            
+            echo "=== DIAGNOSTICS ==="
+            echo "--- 1. Nginx Status ---"
+            sudo systemctl status nginx --no-pager || true
+            echo "--- 2. Ports Listening ---"
+            sudo ss -tulpn || true
+            echo "--- 3. Localhost HTTP Check ---"
+            curl -I http://localhost || echo "Localhost curl failed!"
+            echo "--- 4. Public IP of EC2 ---"
+            curl -s http://checkip.amazonaws.com || true
+
 
 
 
