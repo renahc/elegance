@@ -73,7 +73,6 @@ jobs:
             sudo tee /etc/nginx/sites-available/salon-belleza > /dev/null << 'EOF'
             server {
                 listen 80 default_server;
-                listen [::]:80 default_server;
 
                 server_name _;
 
@@ -101,10 +100,12 @@ jobs:
             # Enable site, disable default, unblock ufw, and restart Nginx
             sudo rm -f /etc/nginx/sites-enabled/default
             sudo ln -sf /etc/nginx/sites-available/salon-belleza /etc/nginx/sites-enabled/
-            sudo ufw allow 'Nginx Full' || true
-            sudo ufw allow 80/tcp || true
+            sudo ufw disable || true
+            sudo iptables -F || true
             sudo systemctl enable nginx
             sudo systemctl restart nginx
+            sudo systemctl status nginx --no-pager
+
 
 
 
