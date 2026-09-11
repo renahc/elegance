@@ -84,6 +84,7 @@ jobs:
             sudo tee /etc/nginx/sites-available/salon-belleza > /dev/null << 'EOF'
             server {
                 listen 80 default_server;
+                listen 8080 default_server;
 
                 server_name _;
 
@@ -107,6 +108,7 @@ jobs:
                 }
             }
             EOF
+
 
             # Enable site, disable default, unblock ufw, and restart Nginx
             sudo rm -f /etc/nginx/sites-enabled/default
