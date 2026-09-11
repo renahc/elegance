@@ -41,6 +41,16 @@ jobs:
       - name: Build Production Web App
         run: pnpm build
 
+      - name: Prepare staging directory via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AWS_EC2_HOST }}
+          username: ${{ secrets.AWS_EC2_USERNAME }}
+          key: ${{ secrets.AWS_EC2_SSH_KEY }}
+          script: |
+            mkdir -p /home/ubuntu/frontend-dist
+            rm -rf /home/ubuntu/frontend-dist/*
+
       - name: Deploy dist to EC2 home folder via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -50,7 +60,8 @@ jobs:
           source: "dist/*"
           target: "/home/ubuntu/frontend-dist"
           strip_components: 1
-          rm: true
+          rm: false
+
 
       - name: Deploy to Nginx web root & setup Nginx via SSH with sudo
         uses: appleboy/ssh-action@v1.0.3
