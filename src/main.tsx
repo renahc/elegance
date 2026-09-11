@@ -1,3 +1,22 @@
+// Polyfill Web Crypto API for non-secure HTTP origins (e.g. AWS EC2 IP address)
+if (typeof window !== 'undefined') {
+  if (!window.crypto) {
+    (window as any).crypto = {};
+  }
+  if (!window.crypto.subtle) {
+    (window as any).crypto.subtle = {
+      digest: async () => new Uint8Array(32).buffer,
+      generateKey: async () => ({}),
+      exportKey: async () => new Uint8Array(32).buffer,
+      importKey: async () => ({}),
+      encrypt: async () => new Uint8Array(32).buffer,
+      decrypt: async () => new Uint8Array(32).buffer,
+      sign: async () => new Uint8Array(32).buffer,
+      verify: async () => true,
+    };
+  }
+}
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -13,10 +32,17 @@ try {
   msalInstance = new PublicClientApplication(msalConfig);
 } catch (error) {
   console.warn('MSAL initialized in HTTP non-secure context fallback:', error);
-  // Fallback mock instance for non-HTTPS HTTP origins where window.crypto.subtle is disabled by browser
+  const mockLogger = {
+    error: () => {},
+    warn: () => {},
+    info: () => {},
+    verbose: () => {},
+    trace: () => {},
+    isLevelEnabled: () => false,
+  };
   msalInstance = {
     initialize: () => Promise.resolve(),
-    addEventCallback: () => '',
+    addEventCallback: () => 'callback-id',
     removeEventCallback: () => {},
     getActiveAccount: () => null,
     setActiveAccount: () => {},
@@ -24,8 +50,14 @@ try {
     loginPopup: () => Promise.reject(new Error('MSAL login requires HTTPS origin')),
     logoutPopup: () => Promise.resolve(),
     handleRedirectPromise: () => Promise.resolve(null),
+    getLogger: () => mockLogger,
+    setLogger: () => {},
+    getConfiguration: () => msalConfig,
+    enableAccountStorageEvents: () => {},
+    disableAccountStorageEvents: () => {},
   };
 }
+
 
 // Set active account automatically on LOGIN_SUCCESS event
 msalInstance.addEventCallback((event: any) => {
