@@ -41,14 +41,28 @@ jobs:
       - name: Build Production Web App
         run: pnpm build
 
-      - name: Deploy to AWS EC2 via SCP
+      - name: Deploy dist to EC2 home folder via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.AWS_EC2_HOST }}
           username: ${{ secrets.AWS_EC2_USERNAME }}
           key: ${{ secrets.AWS_EC2_SSH_KEY }}
           source: "dist/*"
-          target: "/var/www/salon-belleza"
+          target: "/home/ubuntu/frontend-dist"
           strip_components: 1
-          rm: false
+          rm: true
+
+      - name: Deploy to Nginx web root via SSH with sudo
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AWS_EC2_HOST }}
+          username: ${{ secrets.AWS_EC2_USERNAME }}
+          key: ${{ secrets.AWS_EC2_SSH_KEY }}
+          script: |
+            sudo mkdir -p /var/www/salon-belleza
+            sudo rm -rf /var/www/salon-belleza/*
+            sudo cp -r /home/ubuntu/frontend-dist/* /var/www/salon-belleza/
+            sudo chown -R www-data:www-data /var/www/salon-belleza
+            sudo chmod -R 755 /var/www/salon-belleza
+
 
