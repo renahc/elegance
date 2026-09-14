@@ -102,7 +102,7 @@ resource "aws_instance" "elegance_frontend_ec2" {
     
     amazon-linux-extras install -y nginx1 || yum install -y nginx || true
     
-    cat <<NGINX_CONF > /etc/nginx/conf.d/salon.conf
+    cat <<'NGINX_CONF' > /etc/nginx/conf.d/salon.conf
 server {
     listen 80;
     server_name _;
@@ -111,43 +111,43 @@ server {
     index index.html;
 
     location / {
-        try_files \$uri \$uri/ /index.html;
+        try_files $uri $uri/ /index.html;
     }
 
     location /api/v1/appointments {
         proxy_pass http://${var.backend_host}:8081;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
 
     location /api/v1/services {
         proxy_pass http://${var.backend_host}:8081;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
 
     location /api/v1/clients {
         proxy_pass http://${var.backend_host}:8082;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
 
     location /api/v1/stylists {
         proxy_pass http://${var.backend_host}:8082;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
 
     location /api/v1/auth {
         proxy_pass http://${var.backend_host}:8082;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
 
     location /api/v1/notifications {
         proxy_pass http://${var.backend_host}:8083;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
 }
 NGINX_CONF
