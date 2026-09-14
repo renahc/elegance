@@ -23,7 +23,7 @@ import {
   INITIAL_SERVICES,
   INITIAL_STYLISTS,
 } from "./data/mockData";
-import type { Appointment, AppointmentStatus } from "./types/dashboard";
+import type { Appointment, AppointmentStatus, Client, Service, ServiceCategory, Stylist } from "./types/dashboard";
 
 export function App() {
   const { instance, accounts } = useMsal();
@@ -56,12 +56,10 @@ export function App() {
   }, [accounts, instance]);
 
   const handleLogin = async () => {
-    // 1. Set user profile immediately on click so navbar updates instantly
     const defaultUser = { name: 'Renato Herrera (Azure AD)', username: 'r.herrera@duoc.cl' };
     setCurrentUser(defaultUser);
     sessionStorage.setItem('azure_ad_user', JSON.stringify(defaultUser));
 
-    // 2. Trigger MSAL authentication popup
     try {
       const result = await instance.loginPopup(loginRequest);
       if (result && result.account) {
@@ -87,7 +85,6 @@ export function App() {
   };
 
   const handleLogout = () => {
-    // Clear local user state, storage, and tokens instantly without leaving localhost
     setCurrentUser(null);
     sessionStorage.clear();
     localStorage.clear();
@@ -102,27 +99,21 @@ export function App() {
     }
   };
 
-
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [searchQuery, setSearchQuery] = useState("");
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
 
-  const [preselectedServiceId, setPreselectedServiceId] = useState<
-    string | undefined
-  >();
-  const [preselectedStylistId, setPreselectedStylistId] = useState<
-    string | undefined
-  >();
+  const [preselectedServiceId, setPreselectedServiceId] = useState<string | undefined>();
+  const [preselectedStylistId, setPreselectedStylistId] = useState<string | undefined>();
 
-  const [appointments, setAppointments] =
-    useState<Appointment[]>(INITIAL_APPOINTMENTS);
-  const [services, setServices] = useState(INITIAL_SERVICES);
-  const [stylists, setStylists] = useState(INITIAL_STYLISTS);
-  const [clients] = useState(INITIAL_CLIENTS);
+  const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
+  const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
+  const [stylists, setStylists] = useState<Stylist[]>(INITIAL_STYLISTS);
+  const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
   const [kpis] = useState(INITIAL_KPIS);
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
 
-  // Sync activeTab from URL pathname (/dashboard/appointments, etc.)
+  // Sync activeTab from URL pathname
   useEffect(() => {
     if (location.pathname.startsWith("/dashboard")) {
       const parts = location.pathname.split("/").filter(Boolean);
@@ -139,24 +130,147 @@ export function App() {
     navigate(`/dashboard/${tab}`);
   };
 
-  // Load data from Spring Boot REST API on component mount
+  // Load data from Spring Boot REST APIs and sync with Backend Microservices
   useEffect(() => {
     async function loadBackendData() {
+      // 1. Services Microservice (Port 8084)
       const liveServices = await apiService.getServices();
-      if (liveServices && liveServices.length > 0) {
-        setServices(liveServices);
+      if (Array.isArray(liveServices) && liveServices.length > 0) {
+        const mappedServices: Service[] = liveServices.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          category: (s.category || "cabello") as ServiceCategory,
+          price: Number(s.basePrice || s.price || 25000),
+          durationMinutes: Number(s.durationMinutes || 60),
+          popular: true,
+          active: s.active ?? true,
+        }));
+        setServices(mappedServices);
+      } else if (Array.isArray(liveServices) && liveServices.length === 0) {
+        // Seed initial services to backend if DB is empty
+        for (const s of INITIAL_SERVICES) {
+          await apiService.createService({
+            name: s.name,
+            description: `Servicio profesional de ${s.category}`,
+            category: s.category,
+            durationMinutes: s.durationMinutes,
+            basePrice: s.price,
+            imageUrl: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=800",
+          });
+        }
       }
 
+      // 2. Stylists (User Microservice - Port 8082)
       const liveStylists = await apiService.getStylists();
-      if (liveStylists && liveStylists.length > 0) {
-        setStylists(liveStylists);
+      if (Array.isArray(liveStylists) && liveStylists.length > 0) {
+        const mappedStylists: Stylist[] = liveStylists.map((st: any) => ({
+          id: st.id,
+          name: st.name,
+          role: st.role || "Estilista Master",
+          specialty: st.specialty || "Estilismo & Color",
+          avatar: st.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300",
+          rating: Number(st.rating || 4.9),
+          reviewsCount: Number(st.reviewsCount || 120),
+          isAvailable: st.isAvailable ?? true,
+          shift: st.shift || "09:00 - 18:00",
+          completedTodayCount: Number(st.completedTodayCount || 4),
+        }));
+        setStylists(mappedStylists);
+      } else if (Array.isArray(liveStylists) && liveStylists.length === 0) {
+        for (const st of INITIAL_STYLISTS) {
+          await apiService.createStylist({
+            name: st.name,
+            role: st.role,
+            specialty: st.specialty,
+            avatar: st.avatar,
+            rating: st.rating,
+            reviewsCount: st.reviewsCount,
+            shift: st.shift,
+            isAvailable: st.isAvailable,
+          });
+        }
       }
 
+      // 3. Clients (User Microservice - Port 8082)
+      const liveClients = await apiService.getClients();
+      if (Array.isArray(liveClients) && liveClients.length > 0) {
+        const mappedClients: Client[] = liveClients.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          email: c.email || "cliente@elegance.cl",
+          phone: c.phone || "+56 9 1234 5678",
+          avatar: c.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200",
+          totalVisits: Number(c.totalVisits || 1),
+          totalSpent: Number(c.totalSpent || 45000),
+          lastVisit: c.lastVisit || "Hoy",
+          tier: (c.tier || "Regular") as any,
+          notes: c.notes || "",
+        }));
+        setClients(mappedClients);
+      } else if (Array.isArray(liveClients) && liveClients.length === 0) {
+        for (const c of INITIAL_CLIENTS) {
+          await apiService.createClient({
+            name: c.name,
+            email: c.email,
+            phone: c.phone,
+            avatar: c.avatar,
+            totalVisits: c.totalVisits,
+            totalSpent: c.totalSpent,
+            lastVisit: c.lastVisit,
+            tier: c.tier,
+            notes: c.notes,
+          });
+        }
+      }
+
+      // 4. Appointments (Appointment Microservice - Port 8081)
       const liveAppointments = await apiService.getAppointments();
-      if (liveAppointments && liveAppointments.length > 0) {
-        setAppointments(liveAppointments);
+      if (Array.isArray(liveAppointments) && liveAppointments.length > 0) {
+        const mappedAppointments: Appointment[] = liveAppointments.map((a: any) => ({
+          id: a.id,
+          clientId: a.clientId,
+          clientName: a.clientName,
+          clientAvatar: a.clientAvatar,
+          serviceId: a.serviceId,
+          serviceName: a.serviceName,
+          serviceCategory: (a.serviceCategory || "cabello") as ServiceCategory,
+          stylistId: a.stylistId,
+          stylistName: a.stylistName,
+          date: a.date,
+          time: a.time,
+          durationMinutes: Number(a.durationMinutes || 60),
+          price: Number(a.price || 35000),
+          status: a.status as AppointmentStatus,
+          notes: a.notes,
+        }));
+        setAppointments(mappedAppointments);
+      } else if (Array.isArray(liveAppointments) && liveAppointments.length === 0) {
+        for (const apt of INITIAL_APPOINTMENTS) {
+          await apiService.createAppointment({
+            clientId: apt.clientId,
+            clientName: apt.clientName,
+            clientAvatar: apt.clientAvatar,
+            serviceId: apt.serviceId,
+            serviceName: apt.serviceName,
+            serviceCategory: apt.serviceCategory,
+            stylistId: apt.stylistId,
+            stylistName: apt.stylistName,
+            date: apt.date,
+            time: apt.time,
+            durationMinutes: apt.durationMinutes,
+            price: apt.price,
+            notes: apt.notes,
+          });
+        }
+      }
+
+      // 5. Notifications (Notification Microservice - Port 8083)
+      const liveNotifs = await apiService.getNotifications();
+      if (Array.isArray(liveNotifs) && liveNotifs.length > 0) {
+        setNotifications(liveNotifs);
       }
     }
+
     loadBackendData();
   }, []);
 
@@ -167,19 +281,35 @@ export function App() {
     setIsNewAppointmentOpen(true);
   };
 
-  // Handlers
+  // Handlers for Backend API Mutating Operations
   const handleAddAppointment = async (newAptData: Omit<Appointment, "id">) => {
-    // 1. Try persisting to Spring Boot REST API
     const persisted = await apiService.createAppointment(newAptData);
 
-    const newAppointment: Appointment = persisted || {
-      ...newAptData,
-      id: `apt-${Date.now()}`,
-    };
+    const newAppointment: Appointment = persisted
+      ? {
+          id: persisted.id,
+          clientId: persisted.clientId,
+          clientName: persisted.clientName,
+          clientAvatar: persisted.clientAvatar,
+          serviceId: persisted.serviceId,
+          serviceName: persisted.serviceName,
+          serviceCategory: (persisted.serviceCategory || "cabello") as ServiceCategory,
+          stylistId: persisted.stylistId,
+          stylistName: persisted.stylistName,
+          date: persisted.date,
+          time: persisted.time,
+          durationMinutes: Number(persisted.durationMinutes || 60),
+          price: Number(persisted.price || 35000),
+          status: persisted.status as AppointmentStatus,
+          notes: persisted.notes,
+        }
+      : {
+          ...newAptData,
+          id: `apt-${Date.now()}`,
+        };
 
     setAppointments([newAppointment, ...appointments]);
 
-    // Push notification
     setNotifications([
       {
         id: `notif-${Date.now()}`,
@@ -193,28 +323,37 @@ export function App() {
     ]);
   };
 
-  const handleChangeAppointmentStatus = (
-    id: string,
-    newStatus: AppointmentStatus,
-  ) => {
+  const handleChangeAppointmentStatus = async (id: string, newStatus: AppointmentStatus) => {
+    await apiService.updateAppointmentStatus(id, newStatus);
     setAppointments((prev) =>
-      prev.map((apt) => (apt.id === id ? { ...apt, status: newStatus } : apt)),
+      prev.map((apt) => (apt.id === id ? { ...apt, status: newStatus } : apt))
     );
   };
 
   const handleToggleStylistAvailability = (id: string) => {
     setStylists((prev) =>
       prev.map((st) =>
-        st.id === id ? { ...st, isAvailable: !st.isAvailable } : st,
-      ),
+        st.id === id ? { ...st, isAvailable: !st.isAvailable } : st
+      )
     );
   };
 
-  const handleToggleServiceActive = (id: string) => {
+  const handleToggleServiceActive = async (id: string) => {
+    const target = services.find((s) => s.id === id);
+    if (target) {
+      await apiService.updateService(id, {
+        name: target.name,
+        category: target.category,
+        durationMinutes: target.durationMinutes,
+        basePrice: target.price,
+        active: !target.active,
+      });
+    }
+
     setServices((prev) =>
       prev.map((srv) =>
-        srv.id === id ? { ...srv, active: !srv.active } : srv,
-      ),
+        srv.id === id ? { ...srv, active: !srv.active } : srv
+      )
     );
   };
 
@@ -313,7 +452,6 @@ export function App() {
       </Routes>
 
       {/* Shared New Appointment Modal */}
-
       <NewAppointmentModal
         isOpen={isNewAppointmentOpen}
         onClose={() => setIsNewAppointmentOpen(false)}
