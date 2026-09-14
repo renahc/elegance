@@ -98,43 +98,10 @@ export function App() {
     clearStaleInteractionStatus();
 
     try {
-      const result = await instance.loginPopup(loginRequest);
-      if (result && result.account) {
-        instance.setActiveAccount(result.account);
-        const claims = (result.account.idTokenClaims as any) || (result.idTokenClaims as any) || {};
-        const roles: string[] = claims.roles || [];
-        const userRole: UserRole = roles.some((r: string) => r.toLowerCase() === 'admin') ? 'Admin' : 'Client';
-
-        const liveUser: UserSession = {
-          name: result.account.name || result.account.username,
-          username: result.account.username,
-          role: userRole,
-        };
-
-        setCurrentUser(liveUser);
-        sessionStorage.setItem('azure_ad_user', JSON.stringify(liveUser));
-
-        if (result.accessToken) {
-          setAuthToken(result.accessToken);
-          try {
-            await apiService.getAuthUserInfo();
-          } catch (e) {
-            console.warn('Backend verification:', e);
-          }
-        }
-      }
+      await instance.loginRedirect(loginRequest);
     } catch (error: any) {
-      console.warn('MSAL Popup interaction error:', error);
+      console.warn('MSAL loginRedirect error:', error);
       clearStaleInteractionStatus();
-
-      if (error?.name === 'BrowserAuthError' && (error?.errorCode?.includes('popup') || error?.errorCode?.includes('block') || error?.errorCode?.includes('interaction'))) {
-        try {
-          await instance.loginRedirect(loginRequest);
-        } catch (redirectErr) {
-          console.warn('MSAL loginRedirect error:', redirectErr);
-          clearStaleInteractionStatus();
-        }
-      }
     }
   };
 
@@ -145,11 +112,11 @@ export function App() {
     setAuthToken(null);
 
     try {
-      instance.logoutPopup({
+      instance.logoutRedirect({
         postLogoutRedirectUri: window.location.origin,
       });
     } catch (e) {
-      console.warn('MSAL logoutPopup:', e);
+      console.warn('MSAL logoutRedirect:', e);
     }
   };
 
