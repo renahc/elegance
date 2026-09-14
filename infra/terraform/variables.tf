@@ -19,5 +19,5 @@ variable "instance_type" {
 variable "backend_host" {
   description = "IP pública o host del backend microservicios"
   type        = string
-  default     = "18.206.194.254"
+  default     = "3.238.123.188"
 }
