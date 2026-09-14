@@ -42,6 +42,20 @@ export function App() {
     return null;
   });
 
+  const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
+
+  const [preselectedServiceId, setPreselectedServiceId] = useState<string | undefined>();
+  const [preselectedStylistId, setPreselectedStylistId] = useState<string | undefined>();
+
+  const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
+  const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
+  const [stylists, setStylists] = useState<Stylist[]>(INITIAL_STYLISTS);
+  const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
+  const [kpis] = useState(INITIAL_KPIS);
+  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+
   // Sync MSAL active account & handle redirect promise
   useEffect(() => {
     const resolveRole = (account: any): UserRole => {
@@ -174,20 +188,6 @@ export function App() {
       console.warn('MSAL logoutRedirect:', e);
     }
   };
-
-  const [activeTab, setActiveTab] = useState<TabType>("overview");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
-
-  const [preselectedServiceId, setPreselectedServiceId] = useState<string | undefined>();
-  const [preselectedStylistId, setPreselectedStylistId] = useState<string | undefined>();
-
-  const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
-  const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
-  const [stylists, setStylists] = useState<Stylist[]>(INITIAL_STYLISTS);
-  const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
-  const [kpis] = useState(INITIAL_KPIS);
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
 
   // Sync activeTab from URL pathname
   useEffect(() => {
