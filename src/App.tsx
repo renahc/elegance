@@ -30,6 +30,20 @@ export function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
+  const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
+  const [stylists, setStylists] = useState<Stylist[]>(INITIAL_STYLISTS);
+  const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
+  const [kpis] = useState(INITIAL_KPIS);
+  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+
+  const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
+
+  const [preselectedServiceId, setPreselectedServiceId] = useState<string | undefined>();
+  const [preselectedStylistId, setPreselectedStylistId] = useState<string | undefined>();
+
   const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
     const saved = sessionStorage.getItem('azure_ad_user');
     if (saved) {
@@ -41,20 +55,6 @@ export function App() {
     }
     return null;
   });
-
-  const [activeTab, setActiveTab] = useState<TabType>("overview");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
-
-  const [preselectedServiceId, setPreselectedServiceId] = useState<string | undefined>();
-  const [preselectedStylistId, setPreselectedStylistId] = useState<string | undefined>();
-
-  const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
-  const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
-  const [stylists, setStylists] = useState<Stylist[]>(INITIAL_STYLISTS);
-  const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
-  const [kpis] = useState(INITIAL_KPIS);
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
 
   // Sync MSAL active account & handle redirect promise
   useEffect(() => {
