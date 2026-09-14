@@ -21,7 +21,7 @@ import {
   LogOut
 } from 'lucide-react';
 
-import type { Service, Stylist } from '../../types/dashboard';
+import type { Service, Stylist, UserSession } from '../../types/dashboard';
 
 
 interface LandingPageProps {
@@ -29,7 +29,7 @@ interface LandingPageProps {
   stylists: Stylist[];
   onOpenNewAppointment: (serviceId?: string, stylistId?: string) => void;
   onSwitchToDashboard: () => void;
-  user: { name: string; username: string } | null;
+  user: UserSession | null;
   onLogin: () => void;
   onLogout: () => void;
 }
@@ -43,11 +43,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onLogin,
   onLogout,
 }) => {
-
-
-
-
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  const handleAppointmentBooking = (serviceId?: string, stylistId?: string) => {
+    if (!user) {
+      alert("Para agendar una cita primero debes iniciar sesión con tu cuenta de Microsoft.");
+      onLogin();
+      return;
+    }
+    onOpenNewAppointment(serviceId, stylistId);
+  };
+
+  const handleDashboardAccess = () => {
+    if (!user) {
+      alert("Debes iniciar sesión para acceder al sistema.");
+      onLogin();
+      return;
+    }
+    if (user.role !== 'Admin') {
+      alert("Acceso no autorizado: El panel de administración es exclusivo para usuarios administradores.");
+      return;
+    }
+    onSwitchToDashboard();
+  };
 
   
   // Interactive estimator state
@@ -187,11 +205,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           )}
 
 
-          <button className="btn-landing-secondary" onClick={onSwitchToDashboard}>
+          <button className="btn-landing-secondary" onClick={handleDashboardAccess}>
             <LayoutDashboard size={16} />
             <span>Panel Dashboard</span>
           </button>
-          <button className="btn-landing-primary" onClick={() => onOpenNewAppointment()}>
+          <button className="btn-landing-primary" onClick={() => handleAppointmentBooking()}>
             <Calendar size={16} />
             <span>Reservar Cita</span>
           </button>
@@ -221,7 +239,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </p>
 
             <div className="hero-cta-group">
-              <button className="btn-landing-primary" style={{ padding: '16px 36px', fontSize: '1rem' }} onClick={() => onOpenNewAppointment()}>
+              <button className="btn-landing-primary" style={{ padding: '16px 36px', fontSize: '1rem' }} onClick={() => handleAppointmentBooking()}>
                 <Calendar size={18} />
                 <span>Agendar mi Visita</span>
               </button>
@@ -363,7 +381,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
                 <button 
                   className="btn-landing-secondary" 
-                  onClick={() => onOpenNewAppointment(service.id)}
+                  onClick={() => handleAppointmentBooking(service.id)}
                 >
                   <span>Agendar</span>
                   <ArrowRight size={14} />
@@ -419,7 +437,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       gap: '4px',
                       fontSize: '0.85rem'
                     }}
-                    onClick={() => onOpenNewAppointment(undefined, stylist.id)}
+                    onClick={() => handleAppointmentBooking(undefined, stylist.id)}
                   >
                     <span>Reservar</span>
                     <ChevronRight size={14} />
@@ -557,7 +575,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
               <button 
                 className="btn-landing-primary"
-                onClick={() => onOpenNewAppointment(selectedEstimatorService?.id, selectedEstimatorStylist?.id)}
+                onClick={() => handleAppointmentBooking(selectedEstimatorService?.id, selectedEstimatorStylist?.id)}
               >
                 <Calendar size={16} />
                 <span>Reservar Ahora</span>

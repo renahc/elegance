@@ -23,14 +23,14 @@ import {
   INITIAL_SERVICES,
   INITIAL_STYLISTS,
 } from "./data/mockData";
-import type { Appointment, AppointmentStatus, Client, Service, ServiceCategory, Stylist } from "./types/dashboard";
+import type { Appointment, AppointmentStatus, Client, Service, ServiceCategory, Stylist, UserRole, UserSession } from "./types/dashboard";
 
 export function App() {
   const { instance, accounts } = useMsal();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [currentUser, setCurrentUser] = useState<{ name: string; username: string } | null>(() => {
+  const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
     const saved = sessionStorage.getItem('azure_ad_user');
     if (saved) {
       try {
@@ -46,9 +46,14 @@ export function App() {
   useEffect(() => {
     const active = instance.getActiveAccount() || accounts[0];
     if (active) {
-      const userObj = {
+      const claims = (active.idTokenClaims as any) || {};
+      const roles: string[] = claims.roles || [];
+      const userRole: UserRole = roles.some((r: string) => r.toLowerCase() === 'admin') ? 'Admin' : 'Client';
+
+      const userObj: UserSession = {
         name: active.name || active.username,
         username: active.username,
+        role: userRole,
       };
       setCurrentUser(userObj);
       sessionStorage.setItem('azure_ad_user', JSON.stringify(userObj));
@@ -56,31 +61,34 @@ export function App() {
   }, [accounts, instance]);
 
   const handleLogin = async () => {
-    const defaultUser = { name: 'Renato Herrera (Azure AD)', username: 'r.herrera@duoc.cl' };
-    setCurrentUser(defaultUser);
-    sessionStorage.setItem('azure_ad_user', JSON.stringify(defaultUser));
-
     try {
       const result = await instance.loginPopup(loginRequest);
       if (result && result.account) {
         instance.setActiveAccount(result.account);
-        const liveUser = {
+        const claims = (result.account.idTokenClaims as any) || (result.idTokenClaims as any) || {};
+        const roles: string[] = claims.roles || [];
+        const userRole: UserRole = roles.some((r: string) => r.toLowerCase() === 'admin') ? 'Admin' : 'Client';
+
+        const liveUser: UserSession = {
           name: result.account.name || result.account.username,
           username: result.account.username,
+          role: userRole,
         };
+
         setCurrentUser(liveUser);
         sessionStorage.setItem('azure_ad_user', JSON.stringify(liveUser));
-      }
-      if (result && result.accessToken) {
-        setAuthToken(result.accessToken);
-        try {
-          await apiService.getAuthUserInfo();
-        } catch (e) {
-          console.warn('Backend verification:', e);
+
+        if (result.accessToken) {
+          setAuthToken(result.accessToken);
+          try {
+            await apiService.getAuthUserInfo();
+          } catch (e) {
+            console.warn('Backend verification:', e);
+          }
         }
       }
     } catch (error) {
-      console.warn('MSAL Popup interaction complete:', error);
+      console.warn('MSAL Popup interaction canceled or incomplete:', error);
     }
   };
 
@@ -382,72 +390,76 @@ export function App() {
         <Route
           path="/dashboard/*"
           element={
-            <div className="dashboard-layout">
-              {/* Sidebar Navigation */}
-              <Sidebar
-                activeTab={activeTab}
-                setActiveTab={handleTabChange}
-                appointmentsCount={appointments.length}
-                onSwitchToLanding={() => navigate("/")}
-              />
-
-              {/* Main Content Area */}
-              <div className="main-wrapper">
-                <Header
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                  onOpenNewAppointment={() => handleOpenNewAppointment()}
-                  notifications={notifications}
-                  user={currentUser}
-                  onLogin={handleLogin}
-                  onLogout={handleLogout}
+            currentUser && currentUser.role === 'Admin' ? (
+              <div className="dashboard-layout">
+                {/* Sidebar Navigation */}
+                <Sidebar
+                  activeTab={activeTab}
+                  setActiveTab={handleTabChange}
+                  appointmentsCount={appointments.length}
+                  onSwitchToLanding={() => navigate("/")}
                 />
 
-                <main className="content-body">
-                  {activeTab === "overview" && (
-                    <OverviewTab
-                      kpis={kpis}
-                      appointments={appointments}
-                      services={services}
-                      stylists={stylists}
-                      onNavigateToAppointments={() => handleTabChange("appointments")}
-                      onOpenNewAppointment={() => handleOpenNewAppointment()}
-                      onChangeStatus={handleChangeAppointmentStatus}
-                    />
-                  )}
+                {/* Main Content Area */}
+                <div className="main-wrapper">
+                  <Header
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                    onOpenNewAppointment={() => handleOpenNewAppointment()}
+                    notifications={notifications}
+                    user={currentUser}
+                    onLogin={handleLogin}
+                    onLogout={handleLogout}
+                  />
 
-                  {activeTab === "appointments" && (
-                    <AppointmentsTab
-                      appointments={appointments}
-                      onChangeStatus={handleChangeAppointmentStatus}
-                      onOpenNewAppointment={() => handleOpenNewAppointment()}
-                      searchQuery={searchQuery}
-                    />
-                  )}
+                  <main className="content-body">
+                    {activeTab === "overview" && (
+                      <OverviewTab
+                        kpis={kpis}
+                        appointments={appointments}
+                        services={services}
+                        stylists={stylists}
+                        onNavigateToAppointments={() => handleTabChange("appointments")}
+                        onOpenNewAppointment={() => handleOpenNewAppointment()}
+                        onChangeStatus={handleChangeAppointmentStatus}
+                      />
+                    )}
 
-                  {activeTab === "clients" && (
-                    <ClientsTab clients={clients} searchQuery={searchQuery} />
-                  )}
+                    {activeTab === "appointments" && (
+                      <AppointmentsTab
+                        appointments={appointments}
+                        onChangeStatus={handleChangeAppointmentStatus}
+                        onOpenNewAppointment={() => handleOpenNewAppointment()}
+                        searchQuery={searchQuery}
+                      />
+                    )}
 
-                  {activeTab === "staff" && (
-                    <StaffTab
-                      stylists={stylists}
-                      onToggleAvailability={handleToggleStylistAvailability}
-                    />
-                  )}
+                    {activeTab === "clients" && (
+                      <ClientsTab clients={clients} searchQuery={searchQuery} />
+                    )}
 
-                  {activeTab === "services" && (
-                    <ServicesTab
-                      services={services}
-                      onToggleActive={handleToggleServiceActive}
-                      searchQuery={searchQuery}
-                    />
-                  )}
+                    {activeTab === "staff" && (
+                      <StaffTab
+                        stylists={stylists}
+                        onToggleAvailability={handleToggleStylistAvailability}
+                      />
+                    )}
 
-                  {activeTab === "analytics" && <AnalyticsTab />}
-                </main>
+                    {activeTab === "services" && (
+                      <ServicesTab
+                        services={services}
+                        onToggleActive={handleToggleServiceActive}
+                        searchQuery={searchQuery}
+                      />
+                    )}
+
+                    {activeTab === "analytics" && <AnalyticsTab />}
+                  </main>
+                </div>
               </div>
-            </div>
+            ) : (
+              <Navigate to="/" replace />
+            )
           }
         />
 

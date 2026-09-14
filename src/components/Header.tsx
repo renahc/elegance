@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Bell, Plus, Calendar as CalendarIcon, LogIn, LogOut, ShieldCheck } from 'lucide-react';
-import type { NotificationItem } from '../types/dashboard';
+import { Search, Bell, Plus, Calendar as CalendarIcon, LogIn, LogOut, ShieldCheck, UserCheck } from 'lucide-react';
+import type { NotificationItem, UserSession } from '../types/dashboard';
 
 
 interface HeaderProps {
@@ -8,7 +8,7 @@ interface HeaderProps {
   setSearchQuery: (query: string) => void;
   onOpenNewAppointment: () => void;
   notifications: NotificationItem[];
-  user: { name: string; username: string } | null;
+  user: UserSession | null;
   onLogin: () => void;
   onLogout: () => void;
 }
@@ -31,9 +31,6 @@ export const Header: React.FC<HeaderProps> = ({
     month: 'short',
     year: 'numeric',
   }).format(new Date());
-
-
-
 
   return (
     <header className="top-header">
@@ -63,15 +60,27 @@ export const Header: React.FC<HeaderProps> = ({
                 gap: '8px', 
                 padding: '6px 14px', 
                 borderRadius: 'var(--radius-full)', 
-                background: 'rgba(0, 120, 212, 0.12)', 
-                border: '1px solid rgba(0, 120, 212, 0.3)',
-                color: '#0078D4',
+                background: user.role === 'Admin' ? 'rgba(0, 120, 212, 0.12)' : 'rgba(16, 185, 129, 0.12)', 
+                border: user.role === 'Admin' ? '1px solid rgba(0, 120, 212, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)',
+                color: user.role === 'Admin' ? '#0078D4' : '#10B981',
                 fontSize: '0.85rem',
                 fontWeight: 600
               }}
             >
-              <ShieldCheck size={16} />
+              {user.role === 'Admin' ? <ShieldCheck size={16} /> : <UserCheck size={16} />}
               <span>{user.name || user.username}</span>
+              <span 
+                style={{ 
+                  fontSize: '0.7rem', 
+                  padding: '2px 6px', 
+                  borderRadius: '4px', 
+                  background: user.role === 'Admin' ? '#0078D4' : '#10B981', 
+                  color: '#FFF',
+                  marginLeft: '4px'
+                }}
+              >
+                {user.role}
+              </span>
             </div>
 
             <button 
@@ -100,7 +109,6 @@ export const Header: React.FC<HeaderProps> = ({
         ) : (
           <button 
             onClick={onLogin}
-
             style={{
               display: 'inline-flex',
               alignItems: 'center',

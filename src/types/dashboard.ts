@@ -1,3 +1,11 @@
+export type UserRole = 'Admin' | 'Client';
+
+export interface UserSession {
+  name: string;
+  username: string;
+  role: UserRole;
+}
+
 export type AppointmentStatus = 'confirmada' | 'en_proceso' | 'completada' | 'cancelada';
 
 export type ServiceCategory = 'cabello' | 'uñas' | 'facial' | 'maquillaje' | 'spa';
