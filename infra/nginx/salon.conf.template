@@ -1,3 +1,8 @@
+upstream services_backend {
+    server BACKEND_HOST_PLACEHOLDER:8084 max_fails=1 fail_timeout=5s;
+    server BACKEND_HOST_PLACEHOLDER:8081 backup;
+}
+
 server {
     listen 80;
     server_name _;
@@ -17,14 +22,14 @@ server {
     }
 
     location /api/v1/services {
-        proxy_pass http://BACKEND_HOST_PLACEHOLDER:8084;
+        proxy_pass http://services_backend;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
     location /api/v1/rates {
-        proxy_pass http://BACKEND_HOST_PLACEHOLDER:8084;
+        proxy_pass http://services_backend;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

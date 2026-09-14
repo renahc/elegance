@@ -44,11 +44,23 @@ jobs:
         working-directory: ./infra/terraform
         run: terraform init
 
-      - name: Destroy Existing Infrastructure (Force Fresh Instance Recreation)
-        working-directory: ./infra/terraform
-        env:
-          TF_VAR_backend_host: '3.238.123.188'
-        run: terraform destroy -auto-approve || true
+      - name: Terminate Any Existing Frontend EC2 Instances in AWS (Prevent Instance Creep)
+        run: |
+          echo "🔍 Buscando instancias EC2 frontend activas..."
+          EXISTING_IDS=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=elegance-frontend-ec2,elegance-frontend-*" "Name=instance-state-name,Values=running,pending,stopped" \
+            --query "Reservations[*].Instances[*].InstanceId" \
+            --output text)
+
+          if [ -n "$EXISTING_IDS" ]; then
+            echo "🗑️ Destruyendo instancias previas del Frontend en AWS: $EXISTING_IDS"
+            aws ec2 terminate-instances --instance-ids $EXISTING_IDS
+            echo "⏳ Esperando terminación..."
+            aws ec2 wait instance-terminated --instance-ids $EXISTING_IDS
+            echo "✅ Instancias previas del Frontend destruidas."
+          else
+            echo "ℹ️ No se encontraron instancias previas del Frontend."
+          fi
 
       - name: Terraform Apply (Create New Fresh EC2 Instance)
         working-directory: ./infra/terraform

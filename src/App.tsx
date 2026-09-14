@@ -106,10 +106,10 @@ export function App() {
   const [preselectedServiceId, setPreselectedServiceId] = useState<string | undefined>();
   const [preselectedStylistId, setPreselectedStylistId] = useState<string | undefined>();
 
-  const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
-  const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
-  const [stylists, setStylists] = useState<Stylist[]>(INITIAL_STYLISTS);
-  const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [stylists, setStylists] = useState<Stylist[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [kpis] = useState(INITIAL_KPIS);
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
 
