@@ -191,7 +191,7 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Total a Pagar</span>
               <strong style={{ fontSize: '1.1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center' }}>
                 <DollarSign size={16} />
-                {selectedService.price.toLocaleString('es-CL')} CLP
+                {(selectedService?.price || 0).toLocaleString('es-CL')} CLP
               </strong>
             </div>
           )}

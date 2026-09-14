@@ -58,8 +58,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     ? services 
     : services.filter((s) => s.category === selectedCategory);
 
-  const selectedEstimatorService = services.find((s) => s.id === estimatorServiceId) || services[0];
-  const selectedEstimatorStylist = stylists.find((st) => st.id === estimatorStylistId) || stylists[0];
+  const selectedEstimatorService = services.find((s) => s.id === estimatorServiceId) || services[0] || null;
+  const selectedEstimatorStylist = stylists.find((st) => st.id === estimatorStylistId) || stylists[0] || null;
 
   const galleryItems = [
     {
@@ -548,16 +548,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div>
                 <span style={{ fontSize: '0.8rem', color: '#A8A29E', textTransform: 'uppercase' }}>Inversión Estimada</span>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.8rem', color: 'var(--accent-gold)', fontWeight: 600 }}>
-                  ${selectedEstimatorService.price.toLocaleString('es-CL')}
+                  ${(selectedEstimatorService?.price || 0).toLocaleString('es-CL')}
                 </div>
                 <span style={{ fontSize: '0.8rem', color: '#D6D3D1' }}>
-                  Duración aproximada: {selectedEstimatorService.durationMinutes} min
+                  Duración aproximada: {selectedEstimatorService?.durationMinutes || 0} min
                 </span>
               </div>
 
               <button 
                 className="btn-landing-primary"
-                onClick={() => onOpenNewAppointment(selectedEstimatorService.id, selectedEstimatorStylist.id)}
+                onClick={() => onOpenNewAppointment(selectedEstimatorService?.id, selectedEstimatorStylist?.id)}
               >
                 <Calendar size={16} />
                 <span>Reservar Ahora</span>
