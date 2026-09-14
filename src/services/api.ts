@@ -60,6 +60,8 @@ export const apiService = {
       console.error("Error al actualizar servicio:", e);
       return null;
     }
+  },
+
   deleteService: async (id: string) => {
     try {
       const res = await fetch(`${API_BASE_URL}/services/${id}`, {
