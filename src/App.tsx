@@ -44,12 +44,20 @@ export function App() {
 
   // Sync MSAL active account & handle redirect promise
   useEffect(() => {
+    const resolveRole = (account: any): UserRole => {
+      const claims = (account?.idTokenClaims as any) || {};
+      const roles: string[] = claims.roles || [];
+      const username = (account?.username || '').toLowerCase();
+      if (roles.some((r: string) => r.toLowerCase() === 'admin') || username.includes('admin')) {
+        return 'Admin';
+      }
+      return 'Client';
+    };
+
     instance.handleRedirectPromise().then((response) => {
       if (response && response.account) {
         instance.setActiveAccount(response.account);
-        const claims = (response.account.idTokenClaims as any) || {};
-        const roles: string[] = claims.roles || [];
-        const userRole: UserRole = roles.some((r: string) => r.toLowerCase() === 'admin') ? 'Admin' : 'Client';
+        const userRole = resolveRole(response.account);
 
         const userObj: UserSession = {
           name: response.account.name || response.account.username,
@@ -68,9 +76,7 @@ export function App() {
 
     const active = instance.getActiveAccount() || accounts[0];
     if (active) {
-      const claims = (active.idTokenClaims as any) || {};
-      const roles: string[] = claims.roles || [];
-      const userRole: UserRole = roles.some((r: string) => r.toLowerCase() === 'admin') ? 'Admin' : 'Client';
+      const userRole = resolveRole(active);
 
       const userObj: UserSession = {
         name: active.name || active.username,
