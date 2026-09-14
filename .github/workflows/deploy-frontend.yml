@@ -2,134 +2,88 @@ name: Deploy Frontend (React) to AWS EC2
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  build-and-deploy:
+  deploy-frontend:
+    name: Deploy Frontend SPA to Dedicated EC2
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
-      - name: Get pnpm store directory
-        shell: bash
+      - name: Install Dependencies & Build Production SPA
         run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+          npm install
+          npm run build
 
-      - name: Cache pnpm dependencies
-        uses: actions/cache@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
-      - name: Install Dependencies
-        run: pnpm install
-
-      - name: Build Production Web App
-        run: pnpm build
-
-      - name: Prepare staging directory via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
-          host: ${{ secrets.AWS_EC2_HOST }}
-          username: ${{ secrets.AWS_EC2_USERNAME }}
-          key: ${{ secrets.AWS_EC2_SSH_KEY }}
-          script: |
-            mkdir -p /home/ubuntu/frontend-dist
-            rm -rf /home/ubuntu/frontend-dist/*
+          terraform_version: 1.9.8
 
-      - name: Deploy dist to EC2 home folder via SCP
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.AWS_EC2_HOST }}
-          username: ${{ secrets.AWS_EC2_USERNAME }}
-          key: ${{ secrets.AWS_EC2_SSH_KEY }}
-          source: "dist/*"
-          target: "/home/ubuntu/frontend-dist"
-          strip_components: 1
-          rm: false
+      - name: Terraform Init
+        working-directory: ./infra/terraform
+        run: terraform init
 
+      - name: Terraform Apply
+        working-directory: ./infra/terraform
+        env:
+          TF_VAR_backend_host: ${{ secrets.BACKEND_HOST || '18.206.194.254' }}
+        run: terraform apply -auto-approve
 
-      - name: Deploy to Nginx web root & setup Nginx via SSH with sudo
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.AWS_EC2_HOST }}
-          username: ${{ secrets.AWS_EC2_USERNAME }}
-          key: ${{ secrets.AWS_EC2_SSH_KEY }}
-          script: |
-            # Install Nginx if not installed
-            which nginx || (sudo apt-get update -y && sudo apt-get install -y nginx)
-            
-            # Configure web root
-            sudo mkdir -p /var/www/salon-belleza
-            sudo rm -rf /var/www/salon-belleza/*
-            sudo cp -r /home/ubuntu/frontend-dist/* /var/www/salon-belleza/
-            sudo chown -R www-data:www-data /var/www/salon-belleza
-            sudo chmod -R 755 /var/www/salon-belleza
+      - name: Get Frontend EC2 connection data from Terraform outputs
+        working-directory: ./infra/terraform
+        run: |
+          echo "FRONTEND_HOST=$(terraform output -raw frontend_public_ip)" >> $GITHUB_ENV
+          terraform output -raw frontend_private_key_pem > /tmp/key.pem
+          chmod 600 /tmp/key.pem
 
-            # Configure Nginx site
-            sudo tee /etc/nginx/sites-available/salon-belleza > /dev/null << 'EOF'
-            server {
-                listen 80 default_server;
+      - name: Wait for Frontend EC2 Nginx to be ready
+        run: |
+          echo "⏳ Esperando inicialización de la instancia EC2 Frontend (${{ env.FRONTEND_HOST }})..."
+          for i in $(seq 1 30); do
+            STATUS=$(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i /tmp/key.pem ec2-user@${{ env.FRONTEND_HOST }} \
+              'cat /var/www/status.txt 2>/dev/null || echo "CONNECTING"' 2>/dev/null || echo "NO_SSH")
 
-                server_name _;
+            if [ "$STATUS" = "READY" ]; then
+              echo "✅ EC2 Frontend lista y aprovisionada con Nginx ($i/30)."
+              exit 0
+            fi
 
+            echo "[$i/30] Esperando Nginx y status.txt..."
+            sleep 10
+          done
+          echo "❌ La instancia Frontend no terminó de prepararse en el tiempo esperado"
+          exit 1
 
-                root /var/www/salon-belleza;
-                index index.html;
+      - name: Deploy Frontend Built Dist to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i /tmp/key.pem ec2-user@${{ env.FRONTEND_HOST }} \
+            'sudo mkdir -p /var/www/salon-belleza && sudo chown -R ec2-user:ec2-user /var/www/salon-belleza && rm -rf /var/www/salon-belleza/*'
+          scp -o StrictHostKeyChecking=no -i /tmp/key.pem -r dist/* ec2-user@${{ env.FRONTEND_HOST }}:/var/www/salon-belleza/
+          ssh -o StrictHostKeyChecking=no -i /tmp/key.pem ec2-user@${{ env.FRONTEND_HOST }} \
+            'sudo systemctl reload nginx || sudo systemctl restart nginx'
 
-                location / {
-                    try_files $uri $uri/ /index.html;
-                }
-
-                location /api/v1/ {
-                    proxy_pass http://127.0.0.1:8080/api/v1/;
-                    proxy_http_version 1.1;
-                    proxy_set_header Upgrade $http_upgrade;
-                    proxy_set_header Connection 'upgrade';
-                    proxy_set_header Host $host;
-                    proxy_cache_bypass $http_upgrade;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                }
-
-            }
-            EOF
-
-
-            # Enable site, disable default, unblock ufw, and restart Nginx
-            sudo rm -f /etc/nginx/sites-enabled/default
-            sudo ln -sf /etc/nginx/sites-available/salon-belleza /etc/nginx/sites-enabled/
-            sudo ufw disable || true
-            sudo iptables -F || true
-            sudo systemctl enable nginx
-            sudo systemctl restart nginx
-            
-            echo "=== DIAGNOSTICS ==="
-            echo "--- 1. Nginx Status ---"
-            sudo systemctl status nginx --no-pager || true
-            echo "--- 2. Ports Listening ---"
-            sudo ss -tulpn || true
-            echo "--- 3. Localhost HTTP Check ---"
-            curl -I http://localhost || echo "Localhost curl failed!"
-            echo "--- 4. Public IP of EC2 ---"
-            curl -s http://checkip.amazonaws.com || true
-
-
-
-
-
+      - name: Output Success Summary
+        run: |
+          echo "🎉 Frontend React desplegado exitosamente!"
+          echo "URL del Frontend: http://${{ env.FRONTEND_HOST }}/"
