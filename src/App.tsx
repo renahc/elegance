@@ -42,8 +42,30 @@ export function App() {
     return null;
   });
 
-  // Sync MSAL active account
+  // Sync MSAL active account & handle redirect promise
   useEffect(() => {
+    instance.handleRedirectPromise().then((response) => {
+      if (response && response.account) {
+        instance.setActiveAccount(response.account);
+        const claims = (response.account.idTokenClaims as any) || {};
+        const roles: string[] = claims.roles || [];
+        const userRole: UserRole = roles.some((r: string) => r.toLowerCase() === 'admin') ? 'Admin' : 'Client';
+
+        const userObj: UserSession = {
+          name: response.account.name || response.account.username,
+          username: response.account.username,
+          role: userRole,
+        };
+        setCurrentUser(userObj);
+        sessionStorage.setItem('azure_ad_user', JSON.stringify(userObj));
+        if (response.accessToken) {
+          setAuthToken(response.accessToken);
+        }
+      }
+    }).catch((err) => {
+      console.warn('MSAL handleRedirectPromise error:', err);
+    });
+
     const active = instance.getActiveAccount() || accounts[0];
     if (active) {
       const claims = (active.idTokenClaims as any) || {};
@@ -60,7 +82,21 @@ export function App() {
     }
   }, [accounts, instance]);
 
+  const clearStaleInteractionStatus = () => {
+    try {
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.includes('interaction.status')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+    } catch (e) {
+      // ignore
+    }
+  };
+
   const handleLogin = async () => {
+    clearStaleInteractionStatus();
+
     try {
       const result = await instance.loginPopup(loginRequest);
       if (result && result.account) {
@@ -89,11 +125,14 @@ export function App() {
       }
     } catch (error: any) {
       console.warn('MSAL Popup interaction error:', error);
-      if (error?.name === 'BrowserAuthError' && (error?.errorCode?.includes('popup') || error?.errorCode?.includes('block'))) {
+      clearStaleInteractionStatus();
+
+      if (error?.name === 'BrowserAuthError' && (error?.errorCode?.includes('popup') || error?.errorCode?.includes('block') || error?.errorCode?.includes('interaction'))) {
         try {
           await instance.loginRedirect(loginRequest);
         } catch (redirectErr) {
           console.warn('MSAL loginRedirect error:', redirectErr);
+          clearStaleInteractionStatus();
         }
       }
     }
