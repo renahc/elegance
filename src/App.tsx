@@ -106,10 +106,10 @@ export function App() {
   const [preselectedServiceId, setPreselectedServiceId] = useState<string | undefined>();
   const [preselectedStylistId, setPreselectedStylistId] = useState<string | undefined>();
 
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
-  const [stylists, setStylists] = useState<Stylist[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
+  const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
+  const [stylists, setStylists] = useState<Stylist[]>(INITIAL_STYLISTS);
+  const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
   const [kpis] = useState(INITIAL_KPIS);
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
 
@@ -158,6 +158,7 @@ export function App() {
             imageUrl: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=800",
           });
         }
+        setServices(INITIAL_SERVICES);
       }
 
       // 2. Stylists (User Microservice - Port 8082)
@@ -189,6 +190,7 @@ export function App() {
             isAvailable: st.isAvailable,
           });
         }
+        setStylists(INITIAL_STYLISTS);
       }
 
       // 3. Clients (User Microservice - Port 8082)
@@ -221,6 +223,7 @@ export function App() {
             notes: c.notes,
           });
         }
+        setClients(INITIAL_CLIENTS);
       }
 
       // 4. Appointments (Appointment Microservice - Port 8081)
@@ -262,6 +265,7 @@ export function App() {
             notes: apt.notes,
           });
         }
+        setAppointments(INITIAL_APPOINTMENTS);
       }
 
       // 5. Notifications (Notification Microservice - Port 8083)
