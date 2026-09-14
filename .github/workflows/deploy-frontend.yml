@@ -79,10 +79,16 @@ jobs:
 
       - name: Install & Configure Nginx Reverse Proxy via SSH
         env:
-          BACKEND_HOST: ${{ secrets.BACKEND_HOST || '3.238.123.188' }}
+          RAW_BACKEND_HOST: ${{ secrets.BACKEND_HOST || '3.238.123.188' }}
         run: |
-          echo "⚙️ Configurando plantilla de Nginx para Backend Host: ${BACKEND_HOST}"
-          sed "s/BACKEND_HOST_PLACEHOLDER/${BACKEND_HOST}/g" infra/nginx/salon.conf.template > /tmp/salon.conf
+          # Limpiar prefijos de protocolo (http://, https://), puertos (:8081) y barras finales
+          CLEAN_HOST=$(echo "${RAW_BACKEND_HOST}" | sed -e 's|^https*://||' -e 's|/.*$||' -e 's|:.*$||')
+          if [ -z "$CLEAN_HOST" ]; then
+            CLEAN_HOST="3.238.123.188"
+          fi
+
+          echo "⚙️ Configurando Nginx para IP Backend procesada: ${CLEAN_HOST}"
+          sed "s/BACKEND_HOST_PLACEHOLDER/${CLEAN_HOST}/g" infra/nginx/salon.conf.template > /tmp/salon.conf
 
           echo "🚀 Instalando Nginx en EC2 Frontend..."
           ssh -o StrictHostKeyChecking=no -i /tmp/key.pem ec2-user@${{ env.FRONTEND_HOST }} \
@@ -93,10 +99,11 @@ jobs:
 
           ssh -o StrictHostKeyChecking=no -i /tmp/key.pem ec2-user@${{ env.FRONTEND_HOST }} "
             sudo mv /tmp/salon.conf /etc/nginx/conf.d/salon.conf
-            sudo sed -i 's/listen       80 default_server;/listen       80;/g' /etc/nginx/nginx.conf 2>/dev/null || true
+            sudo sed -i 's/default_server//g' /etc/nginx/nginx.conf 2>/dev/null || true
+            sudo rm -f /etc/nginx/conf.d/default.conf
             sudo systemctl enable nginx
-            sudo systemctl restart nginx
             sudo nginx -t
+            sudo systemctl restart nginx
           "
 
       - name: Deploy Frontend Built SPA Dist to EC2
