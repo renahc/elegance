@@ -5,7 +5,12 @@ upstream services_backend {
 
 server {
     listen 80;
+    listen 443 ssl default_server;
     server_name _;
+
+    ssl_certificate /etc/ssl/certs/salon-selfsigned.crt;
+    ssl_certificate_key /etc/ssl/private/salon-selfsigned.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
 
     root /var/www/salon-belleza;
     index index.html;
