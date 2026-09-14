@@ -1,14 +1,26 @@
 import React, { useState } from 'react';
-import { Mail, Phone } from 'lucide-react';
+import { Mail, Phone, Plus, Trash2, X } from 'lucide-react';
 import type { Client } from '../../types/dashboard';
 
 interface ClientsTabProps {
   clients: Client[];
   searchQuery: string;
+  onAddClient: (clientData: Omit<Client, "id">) => void;
+  onDeleteClient: (id: string) => void;
 }
 
-export const ClientsTab: React.FC<ClientsTabProps> = ({ clients, searchQuery }) => {
+export const ClientsTab: React.FC<ClientsTabProps> = ({
+  clients,
+  searchQuery,
+  onAddClient,
+  onDeleteClient,
+}) => {
   const [tierFilter, setTierFilter] = useState<string>('todos');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('+56 9 ');
+  const [tier, setTier] = useState<'VIP' | 'Frecuente' | 'Regular' | 'Nuevo'>('Regular');
 
   const filteredClients = clients.filter((client) => {
     const matchesTier = tierFilter === 'todos' || client.tier === tierFilter;
@@ -19,6 +31,25 @@ export const ClientsTab: React.FC<ClientsTabProps> = ({ clients, searchQuery }) 
     return matchesTier && matchesSearch;
   });
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !email.trim()) return;
+    onAddClient({
+      name,
+      email,
+      phone,
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+      totalVisits: 1,
+      totalSpent: 0,
+      lastVisit: 'Hoy',
+      tier,
+      notes: 'Cliente registrado manualmente',
+    });
+    setName('');
+    setEmail('');
+    setIsModalOpen(false);
+  };
+
   return (
     <div>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -26,6 +57,10 @@ export const ClientsTab: React.FC<ClientsTabProps> = ({ clients, searchQuery }) 
           <h1 className="page-title">Gestión de Clientes (CRM)</h1>
           <p className="page-subtitle">Directorio de clientes, historial de visitas, consumo acumulado y categorías VIP.</p>
         </div>
+        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
+          <Plus size={16} />
+          <span>Agregar Cliente</span>
+        </button>
       </div>
 
       <div className="filter-bar">
@@ -59,6 +94,7 @@ export const ClientsTab: React.FC<ClientsTabProps> = ({ clients, searchQuery }) 
               <th>Total Gastado</th>
               <th>Última Visita</th>
               <th>Notas</th>
+              <th>Acción</th>
             </tr>
           </thead>
           <tbody>
@@ -107,11 +143,96 @@ export const ClientsTab: React.FC<ClientsTabProps> = ({ clients, searchQuery }) 
                 <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', maxWidth: 220 }}>
                   {client.notes ? <em>"{client.notes}"</em> : '-'}
                 </td>
+
+                <td>
+                  <button
+                    onClick={() => onDeleteClient(client.id)}
+                    title="Eliminar Cliente"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#EF4444',
+                      cursor: 'pointer',
+                      padding: '6px',
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Add Client Modal */}
+      {isModalOpen && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: 450 }}>
+            <div className="modal-header">
+              <h3>Agregar Nuevo Cliente</h3>
+              <button className="icon-btn" onClick={() => setIsModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Nombre Completo</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ej: María José Silva"
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Correo Electrónico</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="cliente@ejemplo.cl"
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Teléfono</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Categoría VIP</label>
+                <select
+                  className="form-input"
+                  value={tier}
+                  onChange={(e) => setTier(e.target.value as any)}
+                >
+                  <option value="Regular">Regular</option>
+                  <option value="Frecuente">Frecuente</option>
+                  <option value="VIP">VIP</option>
+                  <option value="Nuevo">Nuevo</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary">
+                  Guardar Cliente
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

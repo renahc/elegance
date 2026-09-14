@@ -18,10 +18,11 @@ import {
   Heart,
   Scissors,
   LogIn,
-  LogOut
+  LogOut,
+  Bell
 } from 'lucide-react';
 
-import type { Service, Stylist, UserSession } from '../../types/dashboard';
+import type { Service, Stylist, UserSession, NotificationItem } from '../../types/dashboard';
 
 
 interface LandingPageProps {
@@ -32,6 +33,7 @@ interface LandingPageProps {
   user: UserSession | null;
   onLogin: () => void;
   onLogout: () => void;
+  notifications: NotificationItem[];
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
@@ -42,8 +44,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   user,
   onLogin,
   onLogout,
+  notifications,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [showNavNotifs, setShowNavNotifs] = useState<boolean>(false);
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleAppointmentBooking = (serviceId?: string, stylistId?: string) => {
     if (!user) {
@@ -152,66 +157,171 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="landing-nav-actions">
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '20px', background: 'rgba(0, 120, 212, 0.12)', border: '1px solid rgba(0, 120, 212, 0.4)', color: '#0078D4', fontSize: '0.82rem', fontWeight: 600 }}>
-                <ShieldCheck size={14} />
-                <span>{user.name || user.username}</span>
+              {/* Notification Bell Dropdown (Visible only when logged in) */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setShowNavNotifs(!showNavNotifs)}
+                  title="Notificaciones"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    border: '1px solid rgba(0, 120, 212, 0.3)',
+                    background: 'rgba(0, 120, 212, 0.08)',
+                    color: '#0078D4',
+                    cursor: 'pointer',
+                    position: 'relative'
+                  }}
+                >
+                  <Bell size={16} />
+                  {unreadCount > 0 && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '4px',
+                        right: '4px',
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: '#EF4444'
+                      }}
+                    />
+                  )}
+                </button>
+
+                {showNavNotifs && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '44px',
+                      right: '0',
+                      width: '280px',
+                      background: '#FFFFFF',
+                      borderRadius: '16px',
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                      border: '1px solid rgba(0,0,0,0.08)',
+                      padding: '16px',
+                      zIndex: 1100
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
+                      <strong style={{ fontSize: '0.85rem', color: '#1C1917' }}>Notificaciones</strong>
+                      <span style={{ fontSize: '0.72rem', color: '#C5A059', fontWeight: 600 }}>
+                        {unreadCount} nuevas
+                      </span>
+                    </div>
+                    {notifications.length === 0 ? (
+                      <div style={{ fontSize: '0.8rem', color: '#78716C', textAlign: 'center', padding: '12px 0' }}>
+                        Sin notificaciones recientes
+                      </div>
+                    ) : (
+                      <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {notifications.map((n) => (
+                          <div
+                            key={n.id}
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: '8px',
+                              background: !n.read ? 'rgba(197, 160, 89, 0.08)' : '#F5F5F4',
+                              borderLeft: !n.read ? '3px solid #C5A059' : 'none'
+                            }}
+                          >
+                            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1C1917' }}>
+                              {n.title}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#57534E', marginTop: '2px' }}>
+                              {n.message}
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: '#A8A29E', marginTop: '4px' }}>
+                              {n.time}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
+
+              {/* Compact User Name Badge */}
+              <div 
+                title={user.name || user.username}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  padding: '6px 12px', 
+                  borderRadius: '20px', 
+                  background: 'rgba(0, 120, 212, 0.1)', 
+                  border: '1px solid rgba(0, 120, 212, 0.3)', 
+                  color: '#0078D4', 
+                  fontSize: '0.8rem', 
+                  fontWeight: 600,
+                  maxWidth: '140px'
+                }}
+              >
+                <ShieldCheck size={14} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user.name || user.username}
+                </span>
+              </div>
+
               <button
                 onClick={onLogout}
                 title="Cerrar Sesión Azure AD"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 14px',
+                  gap: '4px',
+                  padding: '6px 10px',
                   borderRadius: '20px',
-                  border: '1px solid rgba(239, 68, 68, 0.4)',
-                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  background: 'rgba(239, 68, 68, 0.1)',
                   color: '#EF4444',
-                  fontSize: '0.82rem',
+                  fontSize: '0.78rem',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease'
+                  whiteSpace: 'nowrap'
                 }}
               >
                 <LogOut size={14} />
-                <span>Cerrar Sesión</span>
+                <span>Salir</span>
               </button>
             </div>
           ) : (
-
-
             <button 
               onClick={onLogin}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '8px 16px',
+                padding: '7px 14px',
                 borderRadius: 'var(--radius-full)',
                 border: 'none',
                 background: '#0078D4',
                 color: '#FFFFFF',
                 fontWeight: 600,
-                fontSize: '0.85rem',
+                fontSize: '0.82rem',
                 cursor: 'pointer',
-                boxShadow: '0 2px 10px rgba(0, 120, 212, 0.3)',
-                transition: 'all 0.2s ease'
+                boxShadow: '0 2px 8px rgba(0, 120, 212, 0.25)',
+                whiteSpace: 'nowrap'
               }}
             >
-              <LogIn size={15} />
-              <span>Login Azure AD</span>
+              <LogIn size={14} />
+              <span>Login Azure</span>
             </button>
           )}
 
-
-          <button className="btn-landing-secondary" onClick={handleDashboardAccess}>
-            <LayoutDashboard size={16} />
-            <span>Panel Dashboard</span>
+          <button className="btn-landing-secondary" style={{ padding: '7px 14px', fontSize: '0.82rem' }} onClick={handleDashboardAccess}>
+            <LayoutDashboard size={14} />
+            <span>Dashboard</span>
           </button>
-          <button className="btn-landing-primary" onClick={() => handleAppointmentBooking()}>
-            <Calendar size={16} />
-            <span>Reservar Cita</span>
+          <button className="btn-landing-primary" style={{ padding: '7px 16px', fontSize: '0.82rem' }} onClick={() => handleAppointmentBooking()}>
+            <Calendar size={14} />
+            <span>Reservar</span>
           </button>
         </div>
       </header>

@@ -8,8 +8,8 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 80px;
-  background: rgba(255, 255, 255, 0.92);
+  height: 76px;
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(232, 217, 190, 0.4);
@@ -17,33 +17,36 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 40px;
+  padding: 0 24px;
   transition: all 0.3s ease;
 }
 
 .landing-nav-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   text-decoration: none;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .landing-nav-links {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 18px;
   list-style: none;
+  margin: 0 12px;
 }
 
 .landing-nav-links a {
   text-decoration: none;
   color: var(--text-primary);
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   transition: color 0.2s ease;
   position: relative;
   padding: 4px 0;
+  white-space: nowrap;
 }
 
 .landing-nav-links a:hover {
@@ -69,7 +72,8 @@
 .landing-nav-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .btn-landing-secondary {

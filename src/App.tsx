@@ -59,6 +59,48 @@ export function App() {
       return 'Client';
     };
 
+    const syncUserToBackendClients = async (account: any) => {
+      const email = account.username || account.name;
+      if (!email) return;
+
+      const exists = clients.some(c => c.email.toLowerCase() === email.toLowerCase());
+      if (!exists) {
+        const name = account.name || account.username || 'Usuario Microsoft';
+        const newClientData = {
+          name,
+          email,
+          phone: '+56 9 8765 4321',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+          totalVisits: 1,
+          totalSpent: 0,
+          lastVisit: 'Hoy',
+          tier: 'VIP',
+          notes: 'Registrado vía Microsoft Entra ID',
+        };
+        const created = await apiService.createClient(newClientData);
+        const mappedClient: Client = created ? {
+          id: created.id,
+          name: created.name,
+          email: created.email,
+          phone: created.phone || '+56 9 8765 4321',
+          avatar: created.avatar || newClientData.avatar,
+          totalVisits: Number(created.totalVisits || 1),
+          totalSpent: Number(created.totalSpent || 0),
+          lastVisit: created.lastVisit || 'Hoy',
+          tier: (created.tier || 'VIP') as any,
+          notes: created.notes || 'Registrado vía Microsoft Entra ID',
+        } : {
+          ...newClientData,
+          id: `cli-ms-${Date.now()}`,
+          tier: 'VIP' as any
+        };
+        setClients(prev => {
+          if (prev.some(c => c.email.toLowerCase() === email.toLowerCase())) return prev;
+          return [mappedClient, ...prev];
+        });
+      }
+    };
+
     instance.handleRedirectPromise().then((response) => {
       if (response && response.account) {
         instance.setActiveAccount(response.account);
@@ -74,6 +116,7 @@ export function App() {
         if (response.accessToken) {
           setAuthToken(response.accessToken);
         }
+        syncUserToBackendClients(response.account);
       }
     }).catch((err) => {
       console.warn('MSAL handleRedirectPromise error:', err);
@@ -90,8 +133,9 @@ export function App() {
       };
       setCurrentUser(userObj);
       sessionStorage.setItem('azure_ad_user', JSON.stringify(userObj));
+      syncUserToBackendClients(active);
     }
-  }, [accounts, instance]);
+  }, [accounts, instance, clients]);
 
   const clearStaleInteractionStatus = () => {
     try {
@@ -361,17 +405,75 @@ export function App() {
 
   const handleChangeAppointmentStatus = async (id: string, newStatus: AppointmentStatus) => {
     await apiService.updateAppointmentStatus(id, newStatus);
+    const target = appointments.find((a) => a.id === id);
     setAppointments((prev) =>
       prev.map((apt) => (apt.id === id ? { ...apt, status: newStatus } : apt))
     );
+
+    if (target) {
+      setNotifications((prev) => [
+        {
+          id: `notif-${Date.now()}`,
+          title: "Estado de Cita Actualizado",
+          message: `La cita de ${target.clientName} ha cambiado a: ${newStatus.replace('_', ' ')}`,
+          time: "Justo ahora",
+          read: false,
+          type: "appointment",
+        },
+        ...prev,
+      ]);
+    }
   };
 
-  const handleToggleStylistAvailability = (id: string) => {
+  const handleToggleStylistAvailability = async (id: string) => {
+    const target = stylists.find((st) => st.id === id);
+    if (target) {
+      const newAvail = !target.isAvailable;
+      await apiService.updateStylist(id, {
+        name: target.name,
+        role: target.role,
+        specialty: target.specialty,
+        avatar: target.avatar,
+        rating: target.rating,
+        reviewsCount: target.reviewsCount,
+        shift: target.shift,
+        isAvailable: newAvail,
+      });
+    }
+
     setStylists((prev) =>
       prev.map((st) =>
         st.id === id ? { ...st, isAvailable: !st.isAvailable } : st
       )
     );
+  };
+
+  const handleCreateStylist = async (stylistData: Omit<Stylist, "id">) => {
+    const created = await apiService.createStylist(stylistData);
+    const newStylist: Stylist = created
+      ? {
+          id: created.id,
+          name: created.name,
+          role: created.role,
+          specialty: created.specialty,
+          avatar: created.avatar || stylistData.avatar,
+          rating: Number(created.rating || 5.0),
+          reviewsCount: Number(created.reviewsCount || 1),
+          isAvailable: created.isAvailable ?? true,
+          shift: created.shift || stylistData.shift,
+          completedTodayCount: Number(created.completedTodayCount || 0),
+        }
+      : {
+          ...stylistData,
+          id: `st-${Date.now()}`,
+        };
+
+    setStylists((prev) => [newStylist, ...prev]);
+  };
+
+  const handleDeleteStylist = async (id: string) => {
+    await apiService.deleteStylist(id);
+    setStylists((prev) => prev.filter((st) => st.id !== id));
   };
 
   const handleToggleServiceActive = async (id: string) => {
@@ -393,6 +495,67 @@ export function App() {
     );
   };
 
+  const handleCreateService = async (serviceData: Omit<Service, "id">) => {
+    const created = await apiService.createService({
+      name: serviceData.name,
+      description: `Servicio profesional de ${serviceData.category}`,
+      category: serviceData.category,
+      durationMinutes: serviceData.durationMinutes,
+      basePrice: serviceData.price,
+      imageUrl: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=800",
+    });
+
+    const newService: Service = created
+      ? {
+          id: created.id,
+          name: created.name,
+          category: created.category as ServiceCategory,
+          price: Number(created.basePrice || created.price || serviceData.price),
+          durationMinutes: Number(created.durationMinutes || serviceData.durationMinutes),
+          popular: serviceData.popular ?? false,
+          active: created.active ?? true,
+        }
+      : {
+          ...serviceData,
+          id: `srv-${Date.now()}`,
+        };
+
+    setServices((prev) => [newService, ...prev]);
+  };
+
+  const handleDeleteService = async (id: string) => {
+    await apiService.deleteService(id);
+    setServices((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const handleCreateClient = async (clientData: Omit<Client, "id">) => {
+    const created = await apiService.createClient(clientData);
+    const newClient: Client = created
+      ? {
+          id: created.id,
+          name: created.name,
+          email: created.email,
+          phone: created.phone,
+          avatar: created.avatar || clientData.avatar,
+          totalVisits: Number(created.totalVisits || 1),
+          totalSpent: Number(created.totalSpent || 0),
+          lastVisit: created.lastVisit || "Hoy",
+          tier: created.tier as any,
+          notes: created.notes || "",
+        }
+      : {
+          ...clientData,
+          id: `cli-${Date.now()}`,
+        };
+
+    setClients((prev) => [newClient, ...prev]);
+  };
+
+  const handleDeleteClient = async (id: string) => {
+    await apiService.deleteClient(id);
+    setClients((prev) => prev.filter((c) => c.id !== id));
+  };
+
   return (
     <>
       <Routes>
@@ -407,6 +570,7 @@ export function App() {
               user={currentUser}
               onLogin={handleLogin}
               onLogout={handleLogout}
+              notifications={notifications}
             />
           }
         />
@@ -459,13 +623,20 @@ export function App() {
                     )}
 
                     {activeTab === "clients" && (
-                      <ClientsTab clients={clients} searchQuery={searchQuery} />
+                      <ClientsTab
+                        clients={clients}
+                        searchQuery={searchQuery}
+                        onAddClient={handleCreateClient}
+                        onDeleteClient={handleDeleteClient}
+                      />
                     )}
 
                     {activeTab === "staff" && (
                       <StaffTab
                         stylists={stylists}
                         onToggleAvailability={handleToggleStylistAvailability}
+                        onAddStylist={handleCreateStylist}
+                        onDeleteStylist={handleDeleteStylist}
                       />
                     )}
 
@@ -473,6 +644,8 @@ export function App() {
                       <ServicesTab
                         services={services}
                         onToggleActive={handleToggleServiceActive}
+                        onAddService={handleCreateService}
+                        onDeleteService={handleDeleteService}
                         searchQuery={searchQuery}
                       />
                     )}

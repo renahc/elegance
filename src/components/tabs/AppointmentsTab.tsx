@@ -16,15 +16,17 @@ export const AppointmentsTab: React.FC<AppointmentsTabProps> = ({
   searchQuery,
 }) => {
   const [statusFilter, setStatusFilter] = useState<string>('todos');
-  const [selectedDate, setSelectedDate] = useState<string>('2026-08-31');
+  const [selectedDate, setSelectedDate] = useState<string>('');
 
   const filteredAppointments = appointments.filter((apt) => {
     const matchesStatus = statusFilter === 'todos' || apt.status === statusFilter;
+    const matchesDate = !selectedDate || apt.date === selectedDate || (apt.date && apt.date.includes(selectedDate));
     const matchesSearch =
       apt.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       apt.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      apt.stylistName.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
+      apt.stylistName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (apt.date && apt.date.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesStatus && matchesDate && matchesSearch;
   });
 
   return (
@@ -61,7 +63,7 @@ export const AppointmentsTab: React.FC<AppointmentsTabProps> = ({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Fecha:</label>
+          <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Filtrar por Fecha:</label>
           <input
             type="date"
             className="form-input"
@@ -69,6 +71,21 @@ export const AppointmentsTab: React.FC<AppointmentsTabProps> = ({
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
           />
+          {selectedDate && (
+            <button
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--accent-gold)',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+              onClick={() => setSelectedDate('')}
+            >
+              Limpiar
+            </button>
+          )}
         </div>
       </div>
 

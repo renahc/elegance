@@ -60,6 +60,16 @@ export const apiService = {
       console.error("Error al actualizar servicio:", e);
       return null;
     }
+  deleteService: async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/services/${id}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      });
+      return res.ok;
+    } catch (e) {
+      return false;
+    }
   },
 
   getRates: async () => {
@@ -85,6 +95,18 @@ export const apiService = {
       return await res.json();
     } catch (e) {
       return null;
+    }
+  },
+
+  deleteRate: async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/rates/${id}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      });
+      return res.ok;
+    } catch (e) {
+      return false;
     }
   },
 
@@ -116,6 +138,33 @@ export const apiService = {
     }
   },
 
+  updateStylist: async (id: string, stylistData: any) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/stylists/${id}`, {
+        method: "PUT",
+        headers: getHeaders(),
+        body: JSON.stringify(stylistData),
+      });
+      if (!res.ok) throw new Error("Error al actualizar estilista");
+      return await res.json();
+    } catch (e) {
+      console.error("Error al actualizar estilista:", e);
+      return null;
+    }
+  },
+
+  deleteStylist: async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/stylists/${id}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      });
+      return res.ok;
+    } catch (e) {
+      return false;
+    }
+  },
+
   // Clients
   getClients: async () => {
     try {
@@ -141,6 +190,32 @@ export const apiService = {
       return await res.json();
     } catch (e) {
       return null;
+    }
+  },
+
+  updateClient: async (id: string, clientData: any) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/clients/${id}`, {
+        method: "PUT",
+        headers: getHeaders(),
+        body: JSON.stringify(clientData),
+      });
+      if (!res.ok) throw new Error("Error al actualizar cliente");
+      return await res.json();
+    } catch (e) {
+      return null;
+    }
+  },
+
+  deleteClient: async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/clients/${id}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      });
+      return res.ok;
+    } catch (e) {
+      return false;
     }
   },
 
@@ -193,7 +268,7 @@ export const apiService = {
       const res = await fetch(`${API_BASE_URL}/notifications`, {
         headers: getHeaders(),
       });
-      if (!res.ok) throw new Error("Error al cargar notificaciones");
+      if (!res.ok) return null;
       return await res.json();
     } catch (e) {
       return null;
