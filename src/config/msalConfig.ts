@@ -25,5 +25,6 @@ export const msalConfig = {
 
 export const loginRequest = {
   scopes: ['openid', 'profile', 'email', 'User.Read'],
+  redirectUri: baseOrigin,
 };
 
