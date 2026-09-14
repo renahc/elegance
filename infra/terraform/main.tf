@@ -90,75 +90,8 @@ resource "aws_instance" "elegance_frontend_ec2" {
 
   user_data = base64encode(<<-EOF
     #!/bin/bash
-    set -e
-    
-    STATUS_FILE="/var/www/status.txt"
     mkdir -p /var/www/salon-belleza
     chown -R ec2-user:ec2-user /var/www
-    echo "BOOTING" > $STATUS_FILE
-    
-    exec > >(tee -a /var/log/user-data.log) 2>&1
-    echo "[$(date)] === Instalando Nginx en EC2 Frontend ==="
-    
-    amazon-linux-extras install -y nginx1 || yum install -y nginx || true
-    
-    cat <<NGINX_CONF > /etc/nginx/conf.d/salon.conf
-server {
-    listen 80;
-    server_name _;
-
-    root /var/www/salon-belleza;
-    index index.html;
-
-    location / {
-        try_files \\\$uri \\\$uri/ /index.html;
-    }
-
-    location /api/v1/appointments {
-        proxy_pass http://${var.backend_host}:8081;
-        proxy_set_header Host \\\$host;
-        proxy_set_header X-Real-IP \\\$remote_addr;
-    }
-
-    location /api/v1/services {
-        proxy_pass http://${var.backend_host}:8081;
-        proxy_set_header Host \\\$host;
-        proxy_set_header X-Real-IP \\\$remote_addr;
-    }
-
-    location /api/v1/clients {
-        proxy_pass http://${var.backend_host}:8082;
-        proxy_set_header Host \\\$host;
-        proxy_set_header X-Real-IP \\\$remote_addr;
-    }
-
-    location /api/v1/stylists {
-        proxy_pass http://${var.backend_host}:8082;
-        proxy_set_header Host \\\$host;
-        proxy_set_header X-Real-IP \\\$remote_addr;
-    }
-
-    location /api/v1/auth {
-        proxy_pass http://${var.backend_host}:8082;
-        proxy_set_header Host \\\$host;
-        proxy_set_header X-Real-IP \\\$remote_addr;
-    }
-
-    location /api/v1/notifications {
-        proxy_pass http://${var.backend_host}:8083;
-        proxy_set_header Host \\\$host;
-        proxy_set_header X-Real-IP \\\$remote_addr;
-    }
-}
-NGINX_CONF
-
-    sed -i 's/listen       80 default_server;/listen       80;/g' /etc/nginx/nginx.conf 2>/dev/null || true
-
-    systemctl enable nginx || true
-    systemctl restart nginx || true
-    
-    echo "READY" > $STATUS_FILE
-    echo "[$(date)] === Nginx Frontend Aprovisionado Exitosamente ==="
   EOF
   )
 

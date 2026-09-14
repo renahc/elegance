@@ -44,11 +44,17 @@ jobs:
         working-directory: ./infra/terraform
         run: terraform init
 
-      - name: Terraform Apply
+      - name: Destroy Existing Infrastructure (Force Fresh Instance Recreation)
         working-directory: ./infra/terraform
         env:
-          TF_VAR_backend_host: ${{ secrets.BACKEND_HOST || '18.206.194.254' }}
-        run: terraform apply -replace="aws_instance.elegance_frontend_ec2" -auto-approve || terraform apply -auto-approve
+          TF_VAR_backend_host: ${{ secrets.BACKEND_HOST || '3.238.123.188' }}
+        run: terraform destroy -auto-approve || true
+
+      - name: Terraform Apply (Create New Fresh EC2 Instance)
+        working-directory: ./infra/terraform
+        env:
+          TF_VAR_backend_host: ${{ secrets.BACKEND_HOST || '3.238.123.188' }}
+        run: terraform apply -auto-approve
 
       - name: Get Frontend EC2 connection data from Terraform outputs
         working-directory: ./infra/terraform
@@ -57,29 +63,52 @@ jobs:
           terraform output -raw frontend_private_key_pem > /tmp/key.pem
           chmod 600 /tmp/key.pem
 
-      - name: Wait for Frontend EC2 Nginx to be ready
+      - name: Wait for SSH Connection to Frontend EC2
         run: |
-          echo "⏳ Esperando inicialización de la instancia EC2 Frontend (${{ env.FRONTEND_HOST }})..."
+          echo "⏳ Esperando disponibilidad de SSH en EC2 Frontend (${{ env.FRONTEND_HOST }})..."
           for i in $(seq 1 30); do
-            STATUS=$(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i /tmp/key.pem ec2-user@${{ env.FRONTEND_HOST }} \
-              'cat /var/www/status.txt 2>/dev/null || echo "CONNECTING"' 2>/dev/null || echo "NO_SSH")
-
-            if [ "$STATUS" = "READY" ]; then
-              echo "✅ EC2 Frontend lista y aprovisionada con Nginx ($i/30)."
+            if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i /tmp/key.pem ec2-user@${{ env.FRONTEND_HOST }} 'echo SSH_OK' 2>/dev/null | grep -q 'SSH_OK'; then
+              echo "✅ Conexión SSH establecida con éxito ($i/30)."
               exit 0
             fi
-
-            echo "[$i/30] Esperando Nginx y status.txt..."
-            sleep 10
+            echo "[$i/30] Esperando inicio del servicio SSH..."
+            sleep 5
           done
-          echo "❌ La instancia Frontend no terminó de prepararse en el tiempo esperado"
+          echo "❌ No se pudo establecer conexión SSH con la instancia EC2"
           exit 1
 
-      - name: Deploy Frontend Built Dist to EC2
+      - name: Install & Configure Nginx Reverse Proxy via SSH
+        env:
+          BACKEND_HOST: ${{ secrets.BACKEND_HOST || '3.238.123.188' }}
         run: |
+          echo "⚙️ Configurando plantilla de Nginx para Backend Host: ${BACKEND_HOST}"
+          sed "s/BACKEND_HOST_PLACEHOLDER/${BACKEND_HOST}/g" infra/nginx/salon.conf.template > /tmp/salon.conf
+
+          echo "🚀 Instalando Nginx en EC2 Frontend..."
           ssh -o StrictHostKeyChecking=no -i /tmp/key.pem ec2-user@${{ env.FRONTEND_HOST }} \
-            'sudo mkdir -p /var/www/salon-belleza && sudo chown -R ec2-user:ec2-user /var/www/salon-belleza && rm -rf /var/www/salon-belleza/*'
+            'sudo amazon-linux-extras install -y nginx1 || sudo yum install -y nginx'
+
+          echo "📦 Copiando configuración de Nginx a la instancia EC2..."
+          scp -o StrictHostKeyChecking=no -i /tmp/key.pem /tmp/salon.conf ec2-user@${{ env.FRONTEND_HOST }}:/tmp/salon.conf
+
+          ssh -o StrictHostKeyChecking=no -i /tmp/key.pem ec2-user@${{ env.FRONTEND_HOST }} "
+            sudo mv /tmp/salon.conf /etc/nginx/conf.d/salon.conf
+            sudo sed -i 's/listen       80 default_server;/listen       80;/g' /etc/nginx/nginx.conf 2>/dev/null || true
+            sudo systemctl enable nginx
+            sudo systemctl restart nginx
+            sudo nginx -t
+          "
+
+      - name: Deploy Frontend Built SPA Dist to EC2
+        run: |
+          echo "📂 Preparando directorio /var/www/salon-belleza..."
+          ssh -o StrictHostKeyChecking=no -i /tmp/key.pem ec2-user@${{ env.FRONTEND_HOST }} \
+            'sudo mkdir -p /var/www/salon-belleza && sudo chown -R ec2-user:ec2-user /var/www/salon-belleza && sudo rm -rf /var/www/salon-belleza/*'
+
+          echo "🚀 Transfiriendo dist/* a la instancia..."
           scp -o StrictHostKeyChecking=no -i /tmp/key.pem -r dist/* ec2-user@${{ env.FRONTEND_HOST }}:/var/www/salon-belleza/
+
+          echo "🔄 Recargando Nginx..."
           ssh -o StrictHostKeyChecking=no -i /tmp/key.pem ec2-user@${{ env.FRONTEND_HOST }} \
             'sudo systemctl reload nginx || sudo systemctl restart nginx'
 
