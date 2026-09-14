@@ -87,8 +87,15 @@ export function App() {
           }
         }
       }
-    } catch (error) {
-      console.warn('MSAL Popup interaction canceled or incomplete:', error);
+    } catch (error: any) {
+      console.warn('MSAL Popup interaction error:', error);
+      if (error?.name === 'BrowserAuthError' && (error?.errorCode?.includes('popup') || error?.errorCode?.includes('block'))) {
+        try {
+          await instance.loginRedirect(loginRequest);
+        } catch (redirectErr) {
+          console.warn('MSAL loginRedirect error:', redirectErr);
+        }
+      }
     }
   };
 
