@@ -67,12 +67,24 @@ jobs:
             if [ "$STATUS" = "READY" ]; then
               echo "✅ EC2 Frontend lista y aprovisionada con Nginx ($i/30)."
               exit 0
+            elif [[ "$STATUS" == ERROR* ]] || [ "$STATUS" = "FAILED" ]; then
+              echo "❌ Error en el aprovisionamiento del Frontend: $STATUS"
+              break
             fi
 
-            echo "[$i/30] Esperando Nginx y status.txt..."
+            if [ "$STATUS" = "NO_SSH" ]; then
+              echo "[$i/30] 🔌 Esperando conexión SSH con la instancia Frontend..."
+            elif [ "$STATUS" = "BOOTING" ] || [ "$STATUS" = "CONNECTING" ]; then
+              echo "[$i/30] ⚙️ SSH conectado. Instalando Nginx..."
+            else
+              echo "[$i/30] ⏳ Estado: $STATUS. Verificando Nginx..."
+            fi
+
             sleep 10
           done
           echo "❌ La instancia Frontend no terminó de prepararse en el tiempo esperado"
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i /tmp/key.pem ec2-user@${{ env.FRONTEND_HOST }} \
+            'cat /var/log/user-data.log 2>/dev/null || cat /var/log/cloud-init-output.log 2>/dev/null' || true
           exit 1
 
       - name: Deploy Frontend Built Dist to EC2
