@@ -48,7 +48,12 @@ export function App() {
       const claims = (account?.idTokenClaims as any) || {};
       const roles: string[] = claims.roles || [];
       const username = (account?.username || '').toLowerCase();
-      if (roles.some((r: string) => r.toLowerCase() === 'admin') || username.includes('admin')) {
+      if (
+        roles.some((r: string) => r.toLowerCase() === 'admin') ||
+        username.includes('admin') ||
+        username.includes('renato') ||
+        username.includes('ga.hernandezl@duocuc.cl')
+      ) {
         return 'Admin';
       }
       return 'Client';
