@@ -25,15 +25,15 @@ resource "tls_private_key" "frontend_ssh_key" {
 }
 
 resource "aws_key_pair" "frontend_key" {
-  key_name   = "${var.app_name}-key"
-  public_key = tls_private_key.frontend_ssh_key.public_key_openssh
+  key_name_prefix = "${var.app_name}-key-"
+  public_key      = tls_private_key.frontend_ssh_key.public_key_openssh
 }
 
 # ==========================================
 # SECURITY GROUP FRONTEND (PUERTOS 80, 22)
 # ==========================================
 resource "aws_security_group" "frontend_sg" {
-  name        = "${var.app_name}-sg"
+  name_prefix = "${var.app_name}-sg-"
   description = "Security Group para el Frontend Nginx"
 
   ingress {
