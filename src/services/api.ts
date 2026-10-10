@@ -1,5 +1,16 @@
-const rawBaseUrl = import.meta.env.VITE_API_URL || "/api/v1";
-const API_BASE_URL = rawBaseUrl.endsWith("/") ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
+const resolveBaseUrl = (): string => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (!envUrl || envUrl.trim() === "") {
+    return "/api/v1";
+  }
+  const clean = envUrl.trim().endsWith("/") ? envUrl.trim().slice(0, -1) : envUrl.trim();
+  if (clean.startsWith("http") && !clean.includes("/api/v1")) {
+    return `${clean}/api/v1`;
+  }
+  return clean;
+};
+
+const API_BASE_URL = resolveBaseUrl();
 
 let authToken: string | null = null;
 

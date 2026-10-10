@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { useMsal } from "@azure/msal-react";
-import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  useNavigate,
+  useLocation,
+  Navigate,
+} from "react-router-dom";
 import { loginRequest } from "./config/msalConfig";
 import { Sidebar } from "./components/Sidebar";
 import type { TabType } from "./components/Sidebar";
@@ -23,14 +29,24 @@ import {
   INITIAL_SERVICES,
   INITIAL_STYLISTS,
 } from "./data/mockData";
-import type { Appointment, AppointmentStatus, Client, Service, ServiceCategory, Stylist, UserRole, UserSession } from "./types/dashboard";
+import type {
+  Appointment,
+  AppointmentStatus,
+  Client,
+  Service,
+  ServiceCategory,
+  Stylist,
+  UserRole,
+  UserSession,
+} from "./types/dashboard";
 
 export function App() {
   const { instance, accounts } = useMsal();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
+  const [appointments, setAppointments] =
+    useState<Appointment[]>(INITIAL_APPOINTMENTS);
   const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
   const [stylists, setStylists] = useState<Stylist[]>(INITIAL_STYLISTS);
   const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
@@ -41,11 +57,15 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
 
-  const [preselectedServiceId, setPreselectedServiceId] = useState<string | undefined>();
-  const [preselectedStylistId, setPreselectedStylistId] = useState<string | undefined>();
+  const [preselectedServiceId, setPreselectedServiceId] = useState<
+    string | undefined
+  >();
+  const [preselectedStylistId, setPreselectedStylistId] = useState<
+    string | undefined
+  >();
 
   const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
-    const saved = sessionStorage.getItem('azure_ad_user');
+    const saved = sessionStorage.getItem("azure_ad_user");
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -61,80 +81,89 @@ export function App() {
     const resolveRole = (account: any): UserRole => {
       const claims = (account?.idTokenClaims as any) || {};
       const roles: string[] = claims.roles || [];
-      const username = (account?.username || '').toLowerCase();
+      const username = (account?.username || "").toLowerCase();
       if (
-        roles.some((r: string) => r.toLowerCase() === 'admin') ||
-        username.includes('admin') ||
-        username.includes('renato') ||
-        username.includes('ga.hernandezl@duocuc.cl')
+        roles.some((r: string) => r.toLowerCase() === "admin") ||
+        username.includes("admin") ||
+        username.includes("re.herrerac@duocuc.cl") ||
+        username.includes("ga.hernandezl@duocuc.cl")
       ) {
-        return 'Admin';
+        return "Admin";
       }
-      return 'Client';
+      return "Client";
     };
 
     const syncUserToBackendClients = async (account: any) => {
       const email = account.username || account.name;
       if (!email) return;
 
-      const exists = clients.some(c => c.email.toLowerCase() === email.toLowerCase());
+      const exists = clients.some(
+        (c) => c.email.toLowerCase() === email.toLowerCase(),
+      );
       if (!exists) {
-        const name = account.name || account.username || 'Usuario Microsoft';
+        const name = account.name || account.username || "Usuario Microsoft";
         const newClientData = {
           name,
           email,
-          phone: '+56 9 8765 4321',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+          phone: "+56 9 8765 4321",
+          avatar:
+            "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200",
           totalVisits: 1,
           totalSpent: 0,
-          lastVisit: 'Hoy',
-          tier: 'VIP',
-          notes: 'Registrado vía Microsoft Entra ID',
+          lastVisit: "Hoy",
+          tier: "VIP",
+          notes: "Registrado vía Microsoft Entra ID",
         };
         const created = await apiService.createClient(newClientData);
-        const mappedClient: Client = created ? {
-          id: created.id,
-          name: created.name,
-          email: created.email,
-          phone: created.phone || '+56 9 8765 4321',
-          avatar: created.avatar || newClientData.avatar,
-          totalVisits: Number(created.totalVisits || 1),
-          totalSpent: Number(created.totalSpent || 0),
-          lastVisit: created.lastVisit || 'Hoy',
-          tier: (created.tier || 'VIP') as any,
-          notes: created.notes || 'Registrado vía Microsoft Entra ID',
-        } : {
-          ...newClientData,
-          id: `cli-ms-${Date.now()}`,
-          tier: 'VIP' as any
-        };
-        setClients(prev => {
-          if (prev.some(c => c.email.toLowerCase() === email.toLowerCase())) return prev;
+        const mappedClient: Client = created
+          ? {
+              id: created.id,
+              name: created.name,
+              email: created.email,
+              phone: created.phone || "+56 9 8765 4321",
+              avatar: created.avatar || newClientData.avatar,
+              totalVisits: Number(created.totalVisits || 1),
+              totalSpent: Number(created.totalSpent || 0),
+              lastVisit: created.lastVisit || "Hoy",
+              tier: (created.tier || "VIP") as any,
+              notes: created.notes || "Registrado vía Microsoft Entra ID",
+            }
+          : {
+              ...newClientData,
+              id: `cli-ms-${Date.now()}`,
+              tier: "VIP" as any,
+            };
+        setClients((prev) => {
+          if (prev.some((c) => c.email.toLowerCase() === email.toLowerCase()))
+            return prev;
           return [mappedClient, ...prev];
         });
       }
     };
 
-    instance.handleRedirectPromise().then((response) => {
-      if (response && response.account) {
-        instance.setActiveAccount(response.account);
-        const userRole = resolveRole(response.account);
+    instance
+      .handleRedirectPromise()
+      .then((response) => {
+        if (response && response.account) {
+          instance.setActiveAccount(response.account);
+          const userRole = resolveRole(response.account);
 
-        const userObj: UserSession = {
-          name: response.account.name || response.account.username,
-          username: response.account.username,
-          role: userRole,
-        };
-        setCurrentUser(userObj);
-        sessionStorage.setItem('azure_ad_user', JSON.stringify(userObj));
-        if (response.accessToken) {
-          setAuthToken(response.accessToken);
+          const userObj: UserSession = {
+            name: response.account.name || response.account.username,
+            username: response.account.username,
+            role: userRole,
+          };
+          setCurrentUser(userObj);
+          sessionStorage.setItem("azure_ad_user", JSON.stringify(userObj));
+          if (response.accessToken) {
+            setAuthToken(response.accessToken);
+          }
+          syncUserToBackendClients(response.account);
         }
-        syncUserToBackendClients(response.account);
-      }
-    }).catch((err) => {
-      console.warn('MSAL handleRedirectPromise error:', err);
-    });
+      })
+      .catch((err) => {
+        console.warn("MSAL handleRedirectPromise error:", err);
+      });
 
     const active = instance.getActiveAccount() || accounts[0];
     if (active) {
@@ -146,7 +175,7 @@ export function App() {
         role: userRole,
       };
       setCurrentUser(userObj);
-      sessionStorage.setItem('azure_ad_user', JSON.stringify(userObj));
+      sessionStorage.setItem("azure_ad_user", JSON.stringify(userObj));
       syncUserToBackendClients(active);
     }
   }, [accounts, instance, clients]);
@@ -154,7 +183,7 @@ export function App() {
   const clearStaleInteractionStatus = () => {
     try {
       Object.keys(sessionStorage).forEach((key) => {
-        if (key.includes('interaction.status')) {
+        if (key.includes("interaction.status")) {
           sessionStorage.removeItem(key);
         }
       });
@@ -169,7 +198,7 @@ export function App() {
     try {
       await instance.loginRedirect(loginRequest);
     } catch (error: any) {
-      console.warn('MSAL loginRedirect error:', error);
+      console.warn("MSAL loginRedirect error:", error);
       clearStaleInteractionStatus();
     }
   };
@@ -185,7 +214,7 @@ export function App() {
         postLogoutRedirectUri: window.location.origin,
       });
     } catch (e) {
-      console.warn('MSAL logoutRedirect:', e);
+      console.warn("MSAL logoutRedirect:", e);
     }
   };
 
@@ -193,7 +222,17 @@ export function App() {
   useEffect(() => {
     if (location.pathname.startsWith("/dashboard")) {
       const parts = location.pathname.split("/").filter(Boolean);
-      if (parts.length > 1 && ["overview", "appointments", "clients", "staff", "services", "analytics"].includes(parts[1])) {
+      if (
+        parts.length > 1 &&
+        [
+          "overview",
+          "appointments",
+          "clients",
+          "staff",
+          "services",
+          "analytics",
+        ].includes(parts[1])
+      ) {
         setActiveTab(parts[1] as TabType);
       } else {
         setActiveTab("overview");
@@ -231,7 +270,8 @@ export function App() {
             category: s.category,
             durationMinutes: s.durationMinutes,
             basePrice: s.price,
-            imageUrl: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=800",
+            imageUrl:
+              "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=800",
           });
         }
         setServices(INITIAL_SERVICES);
@@ -245,7 +285,9 @@ export function App() {
           name: st.name,
           role: st.role || "Estilista Master",
           specialty: st.specialty || "Estilismo & Color",
-          avatar: st.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300",
+          avatar:
+            st.avatar ||
+            "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300",
           rating: Number(st.rating || 4.9),
           reviewsCount: Number(st.reviewsCount || 120),
           isAvailable: st.isAvailable ?? true,
@@ -277,7 +319,9 @@ export function App() {
           name: c.name,
           email: c.email || "cliente@elegance.cl",
           phone: c.phone || "+56 9 1234 5678",
-          avatar: c.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200",
+          avatar:
+            c.avatar ||
+            "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200",
           totalVisits: Number(c.totalVisits || 1),
           totalSpent: Number(c.totalSpent || 45000),
           lastVisit: c.lastVisit || "Hoy",
@@ -305,25 +349,31 @@ export function App() {
       // 4. Appointments (Appointment Microservice - Port 8081)
       const liveAppointments = await apiService.getAppointments();
       if (Array.isArray(liveAppointments) && liveAppointments.length > 0) {
-        const mappedAppointments: Appointment[] = liveAppointments.map((a: any) => ({
-          id: a.id,
-          clientId: a.clientId,
-          clientName: a.clientName,
-          clientAvatar: a.clientAvatar,
-          serviceId: a.serviceId,
-          serviceName: a.serviceName,
-          serviceCategory: (a.serviceCategory || "cabello") as ServiceCategory,
-          stylistId: a.stylistId,
-          stylistName: a.stylistName,
-          date: a.date,
-          time: a.time,
-          durationMinutes: Number(a.durationMinutes || 60),
-          price: Number(a.price || 35000),
-          status: a.status as AppointmentStatus,
-          notes: a.notes,
-        }));
+        const mappedAppointments: Appointment[] = liveAppointments.map(
+          (a: any) => ({
+            id: a.id,
+            clientId: a.clientId,
+            clientName: a.clientName,
+            clientAvatar: a.clientAvatar,
+            serviceId: a.serviceId,
+            serviceName: a.serviceName,
+            serviceCategory: (a.serviceCategory ||
+              "cabello") as ServiceCategory,
+            stylistId: a.stylistId,
+            stylistName: a.stylistName,
+            date: a.date,
+            time: a.time,
+            durationMinutes: Number(a.durationMinutes || 60),
+            price: Number(a.price || 35000),
+            status: a.status as AppointmentStatus,
+            notes: a.notes,
+          }),
+        );
         setAppointments(mappedAppointments);
-      } else if (Array.isArray(liveAppointments) && liveAppointments.length === 0) {
+      } else if (
+        Array.isArray(liveAppointments) &&
+        liveAppointments.length === 0
+      ) {
         for (const apt of INITIAL_APPOINTMENTS) {
           await apiService.createAppointment({
             clientId: apt.clientId,
@@ -373,7 +423,8 @@ export function App() {
           clientAvatar: persisted.clientAvatar,
           serviceId: persisted.serviceId,
           serviceName: persisted.serviceName,
-          serviceCategory: (persisted.serviceCategory || "cabello") as ServiceCategory,
+          serviceCategory: (persisted.serviceCategory ||
+            "cabello") as ServiceCategory,
           stylistId: persisted.stylistId,
           stylistName: persisted.stylistName,
           date: persisted.date,
@@ -403,11 +454,14 @@ export function App() {
     ]);
   };
 
-  const handleChangeAppointmentStatus = async (id: string, newStatus: AppointmentStatus) => {
+  const handleChangeAppointmentStatus = async (
+    id: string,
+    newStatus: AppointmentStatus,
+  ) => {
     await apiService.updateAppointmentStatus(id, newStatus);
     const target = appointments.find((a) => a.id === id);
     setAppointments((prev) =>
-      prev.map((apt) => (apt.id === id ? { ...apt, status: newStatus } : apt))
+      prev.map((apt) => (apt.id === id ? { ...apt, status: newStatus } : apt)),
     );
 
     if (target) {
@@ -415,7 +469,7 @@ export function App() {
         {
           id: `notif-${Date.now()}`,
           title: "Estado de Cita Actualizado",
-          message: `La cita de ${target.clientName} ha cambiado a: ${newStatus.replace('_', ' ')}`,
+          message: `La cita de ${target.clientName} ha cambiado a: ${newStatus.replace("_", " ")}`,
           time: "Justo ahora",
           read: false,
           type: "appointment",
@@ -443,8 +497,8 @@ export function App() {
 
     setStylists((prev) =>
       prev.map((st) =>
-        st.id === id ? { ...st, isAvailable: !st.isAvailable } : st
-      )
+        st.id === id ? { ...st, isAvailable: !st.isAvailable } : st,
+      ),
     );
   };
 
@@ -490,8 +544,8 @@ export function App() {
 
     setServices((prev) =>
       prev.map((srv) =>
-        srv.id === id ? { ...srv, active: !srv.active } : srv
-      )
+        srv.id === id ? { ...srv, active: !srv.active } : srv,
+      ),
     );
   };
 
@@ -502,7 +556,8 @@ export function App() {
       category: serviceData.category,
       durationMinutes: serviceData.durationMinutes,
       basePrice: serviceData.price,
-      imageUrl: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=800",
+      imageUrl:
+        "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=800",
     });
 
     const newService: Service = created
@@ -510,8 +565,12 @@ export function App() {
           id: created.id,
           name: created.name,
           category: created.category as ServiceCategory,
-          price: Number(created.basePrice || created.price || serviceData.price),
-          durationMinutes: Number(created.durationMinutes || serviceData.durationMinutes),
+          price: Number(
+            created.basePrice || created.price || serviceData.price,
+          ),
+          durationMinutes: Number(
+            created.durationMinutes || serviceData.durationMinutes,
+          ),
           popular: serviceData.popular ?? false,
           active: created.active ?? true,
         }
@@ -578,7 +637,7 @@ export function App() {
         <Route
           path="/dashboard/*"
           element={
-            currentUser && currentUser.role === 'Admin' ? (
+            currentUser && currentUser.role === "Admin" ? (
               <div className="dashboard-layout">
                 {/* Sidebar Navigation */}
                 <Sidebar
@@ -607,7 +666,9 @@ export function App() {
                         appointments={appointments}
                         services={services}
                         stylists={stylists}
-                        onNavigateToAppointments={() => handleTabChange("appointments")}
+                        onNavigateToAppointments={() =>
+                          handleTabChange("appointments")
+                        }
                         onOpenNewAppointment={() => handleOpenNewAppointment()}
                         onChangeStatus={handleChangeAppointmentStatus}
                       />
