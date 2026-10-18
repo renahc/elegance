@@ -155,8 +155,16 @@ export function App() {
           };
           setCurrentUser(userObj);
           sessionStorage.setItem("azure_ad_user", JSON.stringify(userObj));
+          if (response.idToken) {
+            sessionStorage.setItem("azure_ad_id_token", response.idToken);
+            console.log("🔑 [Azure AD] ID Token (para Swagger):", response.idToken);
+          }
           if (response.accessToken) {
             setAuthToken(response.accessToken);
+            sessionStorage.setItem("azure_ad_access_token", response.accessToken);
+            console.log("🔑 [Azure AD] Access Token:", response.accessToken);
+          } else if (response.idToken) {
+            setAuthToken(response.idToken);
           }
           syncUserToBackendClients(response.account);
         }
@@ -176,6 +184,11 @@ export function App() {
       };
       setCurrentUser(userObj);
       sessionStorage.setItem("azure_ad_user", JSON.stringify(userObj));
+
+      const savedToken = sessionStorage.getItem("azure_ad_access_token") || sessionStorage.getItem("azure_ad_id_token");
+      if (savedToken) {
+        setAuthToken(savedToken);
+      }
       syncUserToBackendClients(active);
     }
   }, [accounts, instance, clients]);
