@@ -24,7 +24,8 @@ export const msalConfig = {
 };
 
 export const loginRequest = {
-  scopes: ['openid', 'profile', 'email', 'User.Read'],
+  // Solicitamos el scope expuesto de TU propia API en Azure AD
+  scopes: ['api://304d54f7-d485-478a-a1ea-0c2f874b0c1f/access_as_user', 'openid', 'profile', 'email'],
   redirectUri: baseOrigin,
 };
 
