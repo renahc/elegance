@@ -3,10 +3,10 @@ name: Deploy Frontend (React) to AWS EC2
 on:
   push:
     branches:
-      - main
+      - feature/apifix
   pull_request:
     branches:
-      - main
+      - feature/apifix
 
 jobs:
   deploy-frontend:
@@ -23,6 +23,10 @@ jobs:
           node-version: '20'
 
       - name: Install Dependencies & Build Production SPA
+        env:
+          # Inyectamos el secreto de API Gateway para que Vite lo use durante el build
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_API_URL: /api/v1
         run: |
           npm install --legacy-peer-deps
           npm run build
