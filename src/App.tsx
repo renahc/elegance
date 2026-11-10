@@ -247,7 +247,24 @@ export function App() {
 
   // Load data from Spring Boot REST APIs and sync with Backend Microservices
   useEffect(() => {
+    let cancelled = false;
+
     async function loadBackendData() {
+      const activeAccount = instance.getActiveAccount() || accounts[0];
+      if (!activeAccount) return;
+
+      try {
+        const tokenResult = await instance.acquireTokenSilent({
+          ...loginRequest,
+          account: activeAccount,
+        });
+        if (cancelled) return;
+        setAuthToken(tokenResult.accessToken);
+      } catch (error) {
+        console.error("No se pudo obtener un token de acceso para la API:", error);
+        return;
+      }
+
       // 1. Services Microservice (Port 8084)
       const liveServices = await apiService.getServices();
       if (Array.isArray(liveServices) && liveServices.length > 0) {
@@ -402,7 +419,10 @@ export function App() {
     }
 
     loadBackendData();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [accounts, instance]);
 
   // Open modal with optional preselected items
   const handleOpenNewAppointment = (serviceId?: string, stylistId?: string) => {
