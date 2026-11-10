@@ -13,15 +13,25 @@ const resolveBaseUrl = (): string => {
 const API_BASE_URL = resolveBaseUrl();
 
 let authToken: string | null = null;
+let authTokenProvider: (() => Promise<string>) | null = null;
 
 export const setAuthToken = (token: string | null) => {
   authToken = token;
 };
 
-const getHeaders = (): HeadersInit => {
+export const setAuthTokenProvider = (
+  provider: (() => Promise<string>) | null,
+) => {
+  authTokenProvider = provider;
+};
+
+const getHeaders = async (): Promise<HeadersInit> => {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
+  if (authTokenProvider) {
+    authToken = await authTokenProvider();
+  }
   if (authToken) {
     headers["Authorization"] = `Bearer ${authToken}`;
   }
@@ -33,7 +43,7 @@ export const apiService = {
   getServices: async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/services`, {
-        headers: getHeaders(),
+        headers: await getHeaders(),
       });
       if (!res.ok) throw new Error("Error al cargar servicios");
       return await res.json();
@@ -47,7 +57,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE_URL}/services`, {
         method: "POST",
-        headers: getHeaders(),
+        headers: await getHeaders(),
         body: JSON.stringify(serviceData),
       });
       if (!res.ok) throw new Error("Error al crear servicio");
@@ -62,7 +72,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE_URL}/services/${id}`, {
         method: "PUT",
-        headers: getHeaders(),
+        headers: await getHeaders(),
         body: JSON.stringify(serviceData),
       });
       if (!res.ok) throw new Error("Error al actualizar servicio");
@@ -77,7 +87,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE_URL}/services/${id}`, {
         method: "DELETE",
-        headers: getHeaders(),
+        headers: await getHeaders(),
       });
       return res.ok;
     } catch (e) {
@@ -88,7 +98,7 @@ export const apiService = {
   getRates: async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/rates`, {
-        headers: getHeaders(),
+        headers: await getHeaders(),
       });
       if (!res.ok) throw new Error("Error al cargar tarifas");
       return await res.json();
@@ -101,7 +111,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE_URL}/rates`, {
         method: "POST",
-        headers: getHeaders(),
+        headers: await getHeaders(),
         body: JSON.stringify(rateData),
       });
       if (!res.ok) throw new Error("Error al crear tarifa");
@@ -115,7 +125,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE_URL}/rates/${id}`, {
         method: "DELETE",
-        headers: getHeaders(),
+        headers: await getHeaders(),
       });
       return res.ok;
     } catch (e) {
@@ -127,7 +137,7 @@ export const apiService = {
   getStylists: async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/stylists`, {
-        headers: getHeaders(),
+        headers: await getHeaders(),
       });
       if (!res.ok) throw new Error("Error al cargar estilistas");
       return await res.json();
@@ -141,7 +151,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE_URL}/stylists`, {
         method: "POST",
-        headers: getHeaders(),
+        headers: await getHeaders(),
         body: JSON.stringify(stylistData),
       });
       if (!res.ok) throw new Error("Error al crear estilista");
@@ -155,7 +165,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE_URL}/stylists/${id}`, {
         method: "PUT",
-        headers: getHeaders(),
+        headers: await getHeaders(),
         body: JSON.stringify(stylistData),
       });
       if (!res.ok) throw new Error("Error al actualizar estilista");
@@ -170,7 +180,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE_URL}/stylists/${id}`, {
         method: "DELETE",
-        headers: getHeaders(),
+        headers: await getHeaders(),
       });
       return res.ok;
     } catch (e) {
@@ -182,7 +192,7 @@ export const apiService = {
   getClients: async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/clients`, {
-        headers: getHeaders(),
+        headers: await getHeaders(),
       });
       if (!res.ok) throw new Error("Error al cargar clientes");
       return await res.json();
@@ -196,7 +206,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE_URL}/clients`, {
         method: "POST",
-        headers: getHeaders(),
+        headers: await getHeaders(),
         body: JSON.stringify(clientData),
       });
       if (!res.ok) throw new Error("Error al crear cliente");
@@ -210,7 +220,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE_URL}/clients/${id}`, {
         method: "PUT",
-        headers: getHeaders(),
+        headers: await getHeaders(),
         body: JSON.stringify(clientData),
       });
       if (!res.ok) throw new Error("Error al actualizar cliente");
@@ -224,7 +234,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE_URL}/clients/${id}`, {
         method: "DELETE",
-        headers: getHeaders(),
+        headers: await getHeaders(),
       });
       return res.ok;
     } catch (e) {
@@ -236,7 +246,7 @@ export const apiService = {
   getAppointments: async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/appointments`, {
-        headers: getHeaders(),
+        headers: await getHeaders(),
       });
       if (!res.ok) throw new Error("Error al cargar citas");
       return await res.json();
@@ -249,7 +259,7 @@ export const apiService = {
     try {
       const res = await fetch(`${API_BASE_URL}/appointments`, {
         method: "POST",
-        headers: getHeaders(),
+        headers: await getHeaders(),
         body: JSON.stringify(appointmentData),
       });
       if (!res.ok) throw new Error("Error al crear cita");
@@ -266,7 +276,7 @@ export const apiService = {
         `${API_BASE_URL}/appointments/${id}/status?status=${status}`,
         {
           method: "PUT",
-          headers: getHeaders(),
+          headers: await getHeaders(),
         },
       );
       return res.ok;
@@ -279,7 +289,7 @@ export const apiService = {
   getNotifications: async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/notifications`, {
-        headers: getHeaders(),
+        headers: await getHeaders(),
       });
       if (!res.ok) return null;
       return await res.json();
@@ -292,7 +302,7 @@ export const apiService = {
   getAuthUserInfo: async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/auth/me`, {
-        headers: getHeaders(),
+        headers: await getHeaders(),
       });
       if (!res.ok) return null;
       return await res.json();
