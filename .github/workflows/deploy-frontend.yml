@@ -3,10 +3,10 @@ name: Deploy Frontend (React) to AWS EC2
 on:
   push:
     branches:
-      - feat/ep3-kafka-streaming-20261106
+      - main
   pull_request:
     branches:
-      - feat/ep3-kafka-streaming-20261106
+      - main
 
 jobs:
   deploy-frontend:
