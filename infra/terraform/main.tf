@@ -27,6 +27,12 @@ resource "tls_private_key" "frontend_ssh_key" {
 resource "aws_key_pair" "frontend_key" {
   key_name_prefix = "${var.app_name}-key-"
   public_key      = tls_private_key.frontend_ssh_key.public_key_openssh
+
+  tags = {
+    Name      = "${var.app_name}-key-pair"
+    Project   = "elegance"
+    ManagedBy = "terraform"
+  }
 }
 
 # ==========================================
@@ -66,6 +72,12 @@ resource "aws_security_group" "frontend_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name      = "${var.app_name}-security-group"
+    Project   = "elegance"
+    ManagedBy = "terraform"
+  }
 }
 
 # ==========================================
@@ -104,6 +116,8 @@ resource "aws_instance" "elegance_frontend_ec2" {
   )
 
   tags = {
-    Name = "${var.app_name}-ec2"
+    Name      = "${var.app_name}-ec2"
+    Project   = "elegance"
+    ManagedBy = "terraform"
   }
 }

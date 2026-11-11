@@ -1,6 +1,9 @@
 const resolveBaseUrl = (): string => {
-  const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
   if (!envUrl || envUrl.trim() === "") {
+    if (import.meta.env.PROD) {
+      throw new Error("VITE_API_BASE_URL must point to the API Gateway in production.");
+    }
     return "/api/v1";
   }
   const clean = envUrl.trim().endsWith("/") ? envUrl.trim().slice(0, -1) : envUrl.trim();
