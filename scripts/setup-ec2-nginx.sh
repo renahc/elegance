@@ -1,48 +1,48 @@
-#!/usr/bin/env bash
-set -Eeuo pipefail
+#!/bin/bash
+# AWS EC2 Nginx Provisioning Script for Élégance Beauty Studio
+set -e
 
-echo "Installing Nginx on Amazon Linux 2..."
-sudo amazon-linux-extras install -y nginx1 || sudo yum install -y nginx
+echo "=== Updating packages and installing Nginx ==="
+sudo apt-get update -y
+sudo apt-get install -y nginx
 
-sudo mkdir -p /var/www/salon-belleza /etc/ssl/certs /etc/ssl/private
-sudo chown -R ec2-user:ec2-user /var/www/salon-belleza
+echo "=== Creating web root directory ==="
+sudo mkdir -p /var/www/salon-belleza
+sudo chown -R ubuntu:ubuntu /var/www/salon-belleza
 
-if [[ ! -f /etc/ssl/certs/salon-selfsigned.crt ]]; then
-  sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /etc/ssl/private/salon-selfsigned.key \
-    -out /etc/ssl/certs/salon-selfsigned.crt \
-    -subj '/CN=salon-belleza'
-fi
-
-sudo tee /etc/nginx/conf.d/salon.conf >/dev/null <<'EOF'
+echo "=== Configuring Nginx Site ==="
+sudo tee /etc/nginx/sites-available/salon-belleza << 'EOF'
 server {
-    listen 80;
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
     server_name _;
+
     root /var/www/salon-belleza;
     index index.html;
 
     location / {
         try_files $uri $uri/ /index.html;
     }
-}
 
-server {
-    listen 443 ssl;
-    server_name _;
-    root /var/www/salon-belleza;
-    index index.html;
-
-    ssl_certificate /etc/ssl/certs/salon-selfsigned.crt;
-    ssl_certificate_key /etc/ssl/private/salon-selfsigned.key;
-    ssl_protocols TLSv1.2 TLSv1.3;
-
-    location / {
-        try_files $uri $uri/ /index.html;
+    location /api/v1/ {
+        proxy_pass http://localhost:8080/api/v1/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 EOF
 
-sudo rm -f /etc/nginx/conf.d/default.conf
-sudo systemctl enable nginx
+echo "=== Enabling site and restarting Nginx ==="
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo ln -sf /etc/nginx/sites-available/salon-belleza /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
+
+echo "=== Nginx Configuration Complete! ==="
