@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useMsal } from "@azure/msal-react";
 import {
   Routes,
@@ -19,11 +19,7 @@ import { ServicesTab } from "./components/tabs/ServicesTab";
 import { AnalyticsTab } from "./components/tabs/AnalyticsTab";
 import { NewAppointmentModal } from "./components/NewAppointmentModal";
 import { LandingPage } from "./components/landing/LandingPage";
-import {
-  apiService,
-  setAuthToken,
-  setAuthTokenProvider,
-} from "./services/api";
+import { apiService, setAuthToken } from "./services/api";
 
 import {
   INITIAL_APPOINTMENTS,
@@ -46,7 +42,6 @@ import type {
 
 export function App() {
   const { instance, accounts } = useMsal();
-  const syncingClientEmails = useRef(new Set<string>());
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -81,24 +76,6 @@ export function App() {
     return null;
   });
 
-  useEffect(() => {
-    setAuthTokenProvider(async () => {
-      const account = instance.getActiveAccount() || accounts[0];
-      if (!account) {
-        throw new Error("No hay una cuenta de Microsoft activa.");
-      }
-
-      const tokenResult = await instance.acquireTokenSilent({
-        ...loginRequest,
-        account,
-      });
-      setAuthToken(tokenResult.accessToken);
-      return tokenResult.accessToken;
-    });
-
-    return () => setAuthTokenProvider(null);
-  }, [accounts, instance]);
-
   // Sync MSAL active account & handle redirect promise
   useEffect(() => {
     const resolveRole = (account: any): UserRole => {
@@ -120,27 +97,10 @@ export function App() {
       const email = account.username || account.name;
       if (!email) return;
 
-      const emailKey = email.toLowerCase();
       const exists = clients.some(
-        (c) => c.email.toLowerCase() === emailKey,
+        (c) => c.email.toLowerCase() === email.toLowerCase(),
       );
-      if (!exists && !syncingClientEmails.current.has(emailKey)) {
-        syncingClientEmails.current.add(emailKey);
-        try {
-          const tokenResult = await instance.acquireTokenSilent({
-            ...loginRequest,
-            account,
-          });
-          setAuthToken(tokenResult.accessToken);
-        } catch (error) {
-          syncingClientEmails.current.delete(emailKey);
-          console.error(
-            "No se pudo obtener un token para sincronizar el cliente:",
-            error,
-          );
-          return;
-        }
-
+      if (!exists) {
         const name = account.name || account.username || "Usuario Microsoft";
         const newClientData = {
           name,
