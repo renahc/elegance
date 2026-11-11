@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, User, Scissors, DollarSign } from 'lucide-react';
-import type { Appointment, Client, Service, Stylist } from '../types/dashboard';
+import React, { useState } from "react";
+import { X, Calendar, Clock, User, Scissors, DollarSign } from "lucide-react";
+import type { Appointment, Client, Service, Stylist } from "../types/dashboard";
 
 interface NewAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddAppointment: (apt: Omit<Appointment, 'id'>) => void;
+  onAddAppointment: (apt: Omit<Appointment, "id">) => Promise<boolean>;
   clients: Client[];
   services: Service[];
   stylists: Stylist[];
@@ -23,23 +23,23 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
   initialServiceId,
   initialStylistId,
 }) => {
-  const [selectedClientId, setSelectedClientId] = useState(clients[0]?.id || '');
-  const [selectedServiceId, setSelectedServiceId] = useState(initialServiceId || services[0]?.id || '');
-  const [selectedStylistId, setSelectedStylistId] = useState(initialStylistId || stylists[0]?.id || '');
-  const [date, setDate] = useState('2026-08-31');
-  const [time, setTime] = useState('12:00');
-  const [notes, setNotes] = useState('');
-
-  useEffect(() => {
-    if (isOpen) {
-      if (initialServiceId) setSelectedServiceId(initialServiceId);
-      if (initialStylistId) setSelectedStylistId(initialStylistId);
-    }
-  }, [isOpen, initialServiceId, initialStylistId]);
+  const [selectedClientId, setSelectedClientId] = useState(
+    clients[0]?.id || "",
+  );
+  const [selectedServiceId, setSelectedServiceId] = useState(
+    initialServiceId || services[0]?.id || "",
+  );
+  const [selectedStylistId, setSelectedStylistId] = useState(
+    initialStylistId || stylists[0]?.id || "",
+  );
+  const [date, setDate] = useState(new Date().toLocaleDateString("en-CA"));
+  const [time, setTime] = useState("12:00");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const client = clients.find((c) => c.id === selectedClientId);
     const service = services.find((s) => s.id === selectedServiceId);
@@ -47,7 +47,8 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
 
     if (!client || !service || !stylist) return;
 
-    onAddAppointment({
+    setSaving(true);
+    const saved = await onAddAppointment({
       clientId: client.id,
       clientName: client.name,
       clientAvatar: client.avatar,
@@ -60,11 +61,12 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
       time,
       durationMinutes: service.durationMinutes,
       price: service.price,
-      status: 'confirmada',
+      status: "confirmada",
       notes,
     });
 
-    onClose();
+    setSaving(false);
+    if (saved) onClose();
   };
 
   const selectedService = services.find((s) => s.id === selectedServiceId);
@@ -74,7 +76,11 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3 className="modal-title">Agendar Nueva Cita</h3>
-          <button className="icon-btn" onClick={onClose} aria-label="Cerrar modal">
+          <button
+            className="icon-btn"
+            onClick={onClose}
+            aria-label="Cerrar modal"
+          >
             <X size={18} />
           </button>
         </div>
@@ -82,7 +88,7 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">
-              <User size={14} style={{ display: 'inline', marginRight: 6 }} />
+              <User size={14} style={{ display: "inline", marginRight: 6 }} />
               Cliente
             </label>
             <select
@@ -101,7 +107,10 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
 
           <div className="form-group">
             <label className="form-label">
-              <Scissors size={14} style={{ display: 'inline', marginRight: 6 }} />
+              <Scissors
+                size={14}
+                style={{ display: "inline", marginRight: 6 }}
+              />
               Servicio
             </label>
             <select
@@ -112,7 +121,8 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
             >
               {services.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} - ${s.price.toLocaleString('es-CL')} ({s.durationMinutes} min)
+                  {s.name} - ${s.price.toLocaleString("es-CL")} (
+                  {s.durationMinutes} min)
                 </option>
               ))}
             </select>
@@ -137,7 +147,10 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">
-                <Calendar size={14} style={{ display: 'inline', marginRight: 6 }} />
+                <Calendar
+                  size={14}
+                  style={{ display: "inline", marginRight: 6 }}
+                />
                 Fecha
               </label>
               <input
@@ -151,7 +164,10 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
 
             <div className="form-group">
               <label className="form-label">
-                <Clock size={14} style={{ display: 'inline', marginRight: 6 }} />
+                <Clock
+                  size={14}
+                  style={{ display: "inline", marginRight: 6 }}
+                />
                 Hora
               </label>
               <input
@@ -178,30 +194,50 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
           {selectedService && (
             <div
               style={{
-                backgroundColor: 'var(--accent-gold-light)',
-                border: '1px solid var(--accent-gold-border)',
-                padding: '12px 16px',
-                borderRadius: 'var(--radius-md)',
-                marginBottom: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                backgroundColor: "var(--accent-gold-light)",
+                border: "1px solid var(--accent-gold-border)",
+                padding: "12px 16px",
+                borderRadius: "var(--radius-md)",
+                marginBottom: "20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
               }}
             >
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Total a Pagar</span>
-              <strong style={{ fontSize: '1.1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center' }}>
+              <span
+                style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}
+              >
+                Total a Pagar
+              </span>
+              <strong
+                style={{
+                  fontSize: "1.1rem",
+                  color: "var(--text-primary)",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
                 <DollarSign size={16} />
-                {(selectedService?.price || 0).toLocaleString('es-CL')} CLP
+                {(selectedService?.price || 0).toLocaleString("es-CL")} CLP
               </strong>
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+          <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
             <button type="button" className="btn-secondary" onClick={onClose}>
               Cancelar
             </button>
-            <button type="submit" className="btn-primary">
-              Confirmar Cita
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={
+                saving ||
+                !clients.length ||
+                !services.length ||
+                !stylists.length
+              }
+            >
+              {saving ? "Guardando…" : "Confirmar Cita"}
             </button>
           </div>
         </form>

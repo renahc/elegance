@@ -109,22 +109,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   const testimonials = [
     {
-      name: 'Sofía Larraín',
-      role: 'Cliente VIP Élégance',
+      name: 'Cliente de demostración 1',
+      role: 'Opinión ficticia de demostración',
       comment: 'El mejor servicio de Balayage que he recibido en Santiago. El nivel de detalle, la atención con café de especialidad y la calidez del equipo hacen que cada visita sea un ritual imprescindible.',
       stars: 5,
       avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=200',
     },
     {
-      name: 'Fernanda Valenzuela',
-      role: 'Cliente Frecuente',
+      name: 'Cliente de demostración 2',
+      role: 'Opinión ficticia de demostración',
       comment: 'La Manicura Rusa de Camila es insuperable. Mis uñas duran perfectas más de 3 semanas sin saltarse. El ambiente es super elegante y relajante.',
       stars: 5,
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200',
     },
     {
-      name: 'Antonia Edwards',
-      role: 'Cliente VIP Élégance',
+      name: 'Cliente de demostración 3',
+      role: 'Opinión ficticia de demostración',
       comment: 'Sus tratamientos faciales Olaplex e Hydra-Lifting son magia pura. Te asesoran con absoluta honestidad. ¡Élégance es mi lugar feliz!',
       stars: 5,
       avatar: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&q=80&w=200',
@@ -585,7 +585,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* Testimonials */}
       <section id="testimonios" className="landing-section" style={{ background: '#FFFFFF', borderRadius: '24px', border: '1px solid var(--border-subtle)' }}>
         <div className="section-header-center">
-          <span className="section-tag">Reseñas de Clientas</span>
+          <span className="section-tag">Opiniones de demostración</span>
           <h2 className="section-title-large">La Experiencia Élégance</h2>
           <p className="section-description">
             La confianza de nuestras clientas es nuestro mayor reconocimiento.
@@ -738,11 +738,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <ul>
               <li style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <MapPin size={16} color="var(--accent-gold)" />
-                <span>Av. Alonso de Córdova 3890, Vitacura</span>
+                <span>Dirección de demostración — sin ubicación real</span>
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
                 <Phone size={16} color="var(--accent-gold)" />
-                <span>+56 9 8765 4321 / +56 2 2987 6543</span>
+                <span>Contacto de demostración — sin teléfono real</span>
               </li>
             </ul>
 
